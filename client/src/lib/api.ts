@@ -40,8 +40,16 @@ export const articleAPI = {
   getAll: () => api.get("/articles"),
   getPublic: () => api.get("/articles/public"),
   getById: (id: number) => api.get(`/articles/${id}`),
+  getRelated: (id: number, type?: string) => {
+    // Try to get related by type first, fallback to all articles
+    return api
+      .get(`/articles/${id}/related`, { params: { type } })
+      .catch(() => {
+        // If related endpoint fails, return empty array
+        return { data: [] };
+      });
+  },
   create: (data: any) => {
-    // If data is FormData, don't set Content-Type header
     if (data instanceof FormData) {
       return api.post("/articles", data, {
         headers: {
@@ -52,7 +60,6 @@ export const articleAPI = {
     return api.post("/articles", data);
   },
   update: (id: number, data: any) => {
-    // If data is FormData, don't set Content-Type header
     if (data instanceof FormData) {
       return api.put(`/articles/${id}`, data, {
         headers: {
@@ -63,6 +70,16 @@ export const articleAPI = {
     return api.put(`/articles/${id}`, data);
   },
   delete: (id: number) => api.delete(`/articles/${id}`),
+};
+
+// Reviews API
+export const reviewsAPI = {
+  getProductReviews: (productId: number, page?: number, limit?: number) =>
+    api.get(`/products/${productId}/reviews`, { params: { page, limit } }),
+  getReviewStats: (productId: number) =>
+    api.get(`/products/${productId}/reviews/stats`),
+  create: (reviewData: any) => api.post("/reviews", reviewData),
+  markHelpful: (reviewId: number) => api.post(`/reviews/${reviewId}/helpful`),
 };
 
 // Order API

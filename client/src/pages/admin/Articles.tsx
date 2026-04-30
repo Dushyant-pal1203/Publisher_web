@@ -552,7 +552,7 @@ export const AdminArticles = () => {
                       <td className="px-6 py-4">
                         {article.cover_image_url ? (
                           <img
-                            src={`http://localhost:3000${article.cover_image_url}`}
+                            src={`http://localhost:4000${article.cover_image_url}`}
                             alt={article.title}
                             className="h-12 w-10 object-cover rounded border border-gray-200"
                             onError={(e) => {
@@ -768,7 +768,7 @@ export const AdminArticles = () => {
                 ) : editingArticle?.cover_image_url && !coverFile ? (
                   <div className="relative">
                     <img
-                      src={`http://localhost:3000${editingArticle.cover_image_url}`}
+                      src={`http://localhost:4000${editingArticle.cover_image_url}`}
                       alt="Current cover"
                       className="h-32 w-24 object-cover rounded-lg border border-gray-200"
                     />

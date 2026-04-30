@@ -15,7 +15,7 @@ const dashboardRoutes = require("./routes/dashboard");
 const settingsRoutes = require("./routes/settings");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Function to create tables if they don't exist
 async function initializeDatabase() {

@@ -10,7 +10,7 @@ import {
 export const Footer = () => {
   return (
     <footer className="bg-gray-900 text-gray-300">
-      <div className="container-custom py-12">
+      <div className="max-w-7xl mx-auto px-4 py-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="text-white font-semibold mb-4">About Us</h3>
@@ -74,8 +74,14 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-          <p>&copy; 2024 Publishing House. All rights reserved.</p>
+        <div className="flex flex-col md:flex-row mt-5 justify-between items-center gap-4 border-t border-white/10 py-4 text-xs font-mono text-muted-foreground uppercase tracking-widest">
+          <div className="transition-colors text-white">
+            © 2024 Publishing House. All rights reserved.
+          </div>
+          <div className="transition-colors text-white">
+            {" "}
+            Designed & Built with Passion By Dushyant Pal
+          </div>
         </div>
       </div>
     </footer>

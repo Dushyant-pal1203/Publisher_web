@@ -43,7 +43,14 @@ export const AdminLogin = () => {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <BookOpen className="h-12 w-12 text-primary-600" />
+            {/* <BookOpen className="h-12 w-12 text-primary-600" /> */}
+            <Link to="/">
+              <img
+                src="/images/ph-logo.png"
+                alt="Logo"
+                className="h-20 w-20 rounded-full shadow hover:shadow-lg transition"
+              />
+            </Link>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Admin Access</h1>
           <p className="text-gray-600 mt-2">
@@ -78,7 +85,7 @@ export const AdminLogin = () => {
 
         {method === "email" ? (
           <form onSubmit={handleEmailLogin}>
-            <div className="mb-4">
+            <div className="mb-4 border-t-2 pt-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
@@ -104,9 +111,11 @@ export const AdminLogin = () => {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
-              Login
-            </Button>
+            <div className="justify-items-center border-t-2 border-b-2 py-2">
+              <Button type="submit" size="md">
+                Login
+              </Button>
+            </div>
           </form>
         ) : (
           <form onSubmit={showOtpInput ? handleOTPLogin : handleSendOTP}>
@@ -139,9 +148,11 @@ export const AdminLogin = () => {
                 />
               </div>
             )}
-            <Button type="submit" className="w-full">
-              {showOtpInput ? "Verify & Login" : "Send OTP"}
-            </Button>
+            <div className="justify-items-center">
+              <Button type="submit">
+                {showOtpInput ? "Verify & Login" : "Send OTP"}
+              </Button>
+            </div>
           </form>
         )}
 

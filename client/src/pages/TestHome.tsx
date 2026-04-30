@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 import { articleAPI } from "@/lib/api";
@@ -10,9 +9,12 @@ import {
   ChevronRight,
   Calendar,
   User,
+  DollarSign,
+  X,
   Package,
 } from "lucide-react";
 
+// Article Type enum
 const ArticleType = {
   BOOK: "book",
   JOURNAL: "journal",
@@ -41,6 +43,14 @@ type Article = {
   created_at: string;
 };
 
+// Define the response type from your API
+type PublicArticlesResponse = {
+  success: boolean;
+  articles: Article[];
+  count: number;
+};
+
+// Helper function to get image URL
 const getImageUrl = (url: string | null): string | undefined => {
   if (!url) return undefined;
   if (url.startsWith("http")) return url;
@@ -48,9 +58,15 @@ const getImageUrl = (url: string | null): string | undefined => {
   return `${baseUrl}${url}`;
 };
 
-const ArticleCard = ({ article }: { article: Article }) => {
-  const navigate = useNavigate();
-
+// Article Card Component
+const ArticleCard = ({
+  article,
+  onClick,
+}: {
+  article: Article;
+  onClick?: () => void;
+}) => {
+  // Get gradient color based on article type
   const getGradient = (type: string) => {
     switch (type) {
       case "book":
@@ -66,6 +82,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
     }
   };
 
+  // Get badge color based on article type
   const getBadgeColor = (type: string) => {
     switch (type) {
       case "book":
@@ -84,15 +101,12 @@ const ArticleCard = ({ article }: { article: Article }) => {
   const imageUrl = getImageUrl(article.cover_image_url);
   const [imageError, setImageError] = useState(false);
 
-  const handleClick = () => {
-    navigate(`/product/${article.id}`);
-  };
-
   return (
     <div
-      onClick={handleClick}
+      onClick={onClick}
       className="group bg-white rounded-br-3xl rounded-bl-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 cursor-pointer"
     >
+      {/* Cover Image Area */}
       <div
         className={`relative aspect-[3/4] bg-gradient-to-br ${getGradient(article.type)} overflow-hidden`}
       >
@@ -109,6 +123,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
           </div>
         )}
 
+        {/* Featured Badge */}
         {article.featured && (
           <div className="absolute top-3 right-3">
             <div className="flex items-center gap-1 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-sm text-xs font-semibold">
@@ -118,6 +133,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
           </div>
         )}
 
+        {/* Type Badge */}
         <div className="absolute bottom-3 left-3">
           <span
             className={`inline-block px-2 py-1 text-xs font-medium uppercase tracking-wider rounded-sm ${getBadgeColor(article.type)}`}
@@ -126,6 +142,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
           </span>
         </div>
 
+        {/* Stock Status Badge */}
         {!article.in_stock || article.stock_quantity === 0 ? (
           <div className="absolute top-3 left-3">
             <span className="inline-block px-2 py-1 text-xs font-medium uppercase tracking-wider rounded-sm bg-red-100 text-red-700">
@@ -141,6 +158,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
         ) : null}
       </div>
 
+      {/* Content */}
       <div className="p-4">
         <div className="flex justify-between gap-1 h-20">
           <div>
@@ -165,6 +183,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span className="font-bold text-gray-900 flex items-center gap-1">
+            {/* <DollarSign className="h-4 w-4" /> */}
             {article.currency === "INR"
               ? "₹"
               : article.currency === "USD"
@@ -182,6 +201,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
   );
 };
 
+// Skeleton Loader Component
 const SkeletonCard = () => (
   <div className="animate-pulse">
     <div className="aspect-[3/4] bg-gray-200 rounded-sm" />
@@ -194,6 +214,209 @@ const SkeletonCard = () => (
   </div>
 );
 
+// Modal Component
+const ArticleModal = ({
+  article,
+  onClose,
+}: {
+  article: Article | null;
+  onClose: () => void;
+}) => {
+  const [imageError, setImageError] = useState(false);
+
+  if (!article) return null;
+
+  const imageUrl = getImageUrl(article.cover_image_url);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 p-2 bg-white/90 hover:bg-white rounded-full shadow-md transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          <div className="grid md:grid-cols-2 gap-8 p-6 md:p-8">
+            {/* Cover Image */}
+            <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden">
+              {imageUrl && !imageError ? (
+                <img
+                  src={imageUrl}
+                  alt={article.title}
+                  className="w-full h-full object-fit"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BookOpen className="h-20 w-20 text-gray-400" />
+                </div>
+              )}
+            </div>
+
+            {/* Article Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`inline-block px-2 py-1 text-xs font-medium uppercase tracking-wider rounded-sm ${
+                    article.type === "book"
+                      ? "bg-purple-100 text-purple-700"
+                      : article.type === "journal"
+                        ? "bg-blue-100 text-blue-700"
+                        : article.type === "magazine"
+                          ? "bg-pink-100 text-pink-700"
+                          : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {article.type}
+                </span>
+                {article.featured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-700">
+                    <Star className="h-3 w-3 fill-current" />
+                    Featured
+                  </span>
+                )}
+                {(!article.in_stock || article.stock_quantity === 0) && (
+                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-sm bg-red-100 text-red-700">
+                    Out of Stock
+                  </span>
+                )}
+                {article.stock_quantity > 0 && article.stock_quantity < 5 && (
+                  <span className="inline-block px-2 py-1 text-xs font-medium rounded-sm bg-orange-100 text-orange-700">
+                    Only {article.stock_quantity} left in stock
+                  </span>
+                )}
+              </div>
+
+              <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
+                {article.title}
+              </h2>
+
+              <p className="text-gray-600 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                by {article.author}
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 py-2">
+                {article.publisher && (
+                  <div>
+                    <p className="text-xs text-gray-500">Publisher</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {article.publisher}
+                    </p>
+                  </div>
+                )}
+                {article.published_year && (
+                  <div>
+                    <p className="text-xs text-gray-500">Published Year</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {article.published_year}
+                    </p>
+                  </div>
+                )}
+                {article.page_count && (
+                  <div>
+                    <p className="text-xs text-gray-500">Pages</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {article.page_count}
+                    </p>
+                  </div>
+                )}
+                {article.language && (
+                  <div>
+                    <p className="text-xs text-gray-500">Language</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {article.language}
+                    </p>
+                  </div>
+                )}
+                {article.isbn && (
+                  <div>
+                    <p className="text-xs text-gray-500">ISBN</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {article.isbn}
+                    </p>
+                  </div>
+                )}
+                {article.category && (
+                  <div>
+                    <p className="text-xs text-gray-500">Category</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {article.category}
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-xs text-gray-500">Available Stock</p>
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                    <Package className="h-3 w-3" />
+                    {article.stock_quantity} copies
+                  </p>
+                </div>
+              </div>
+
+              {article.description && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Description
+                  </h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {article.description}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {article.currency === "INR"
+                        ? "₹"
+                        : article.currency === "USD"
+                          ? "$"
+                          : "€"}
+                      {article.price.toLocaleString()}
+                    </p>
+                    {article.in_stock && article.stock_quantity > 0 ? (
+                      <p className="text-sm text-green-600">
+                        In Stock ({article.stock_quantity} available)
+                      </p>
+                    ) : (
+                      <p className="text-sm text-red-600">Out of Stock</p>
+                    )}
+                  </div>
+                  <button
+                    className={`px-6 py-2 rounded-sm font-medium transition-colors ${
+                      article.in_stock && article.stock_quantity > 0
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
+                    disabled={!article.in_stock || article.stock_quantity === 0}
+                  >
+                    {article.in_stock && article.stock_quantity > 0
+                      ? "Purchase Now"
+                      : "Out of Stock"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Weekly Schedule Data
 const weeklySchedule = {
   Monday: [{ title: "Journal of South Asian Studies", subtitle: "Vol. 11" }],
   Tuesday: [{ title: "Quiet Library", subtitle: "Morgan Nichols" }],
@@ -211,14 +434,18 @@ export const Home = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   useEffect(() => {
     const fetchArticles = async () => {
       try {
         setLoading(true);
         const response = await articleAPI.getPublic();
+
+        // Type assertion to fix TypeScript errors
         const responseData = response as any;
 
+        // Handle different response structures
         let allArticles: Article[] = [];
 
         if (
@@ -243,6 +470,7 @@ export const Home = () => {
         }
 
         setArticles(allArticles);
+        // Get featured articles (those marked as featured, or first 3 if none)
         const featured = allArticles.filter((a: Article) => a.featured);
         setFeaturedArticles(
           featured.length > 0 ? featured.slice(0, 3) : allArticles.slice(0, 3),
@@ -256,6 +484,7 @@ export const Home = () => {
     fetchArticles();
   }, []);
 
+  // Filter articles based on search and type (show only in-stock items)
   const filteredArticles = articles.filter((article) => {
     const matchesSearch =
       search === "" ||
@@ -265,9 +494,18 @@ export const Home = () => {
       (article.publisher &&
         article.publisher.toLowerCase().includes(search.toLowerCase()));
     const matchesType = selectedType === "all" || article.type === selectedType;
+    // Only show articles that are in stock and have quantity > 0
     const isAvailable = article.in_stock && article.stock_quantity > 0;
     return matchesSearch && matchesType && isAvailable;
   });
+
+  const handleArticleClick = (article: Article) => {
+    setSelectedArticle(article);
+  };
+
+  const closeModal = () => {
+    setSelectedArticle(null);
+  };
 
   const isCatalogLoading = loading;
   const isArticlesLoading = loading;
@@ -276,6 +514,7 @@ export const Home = () => {
     <div>
       <Header />
 
+      {/* Hero Section */}
       <section className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-12">
         <div className="max-w-6xl mx-auto px-6 text-center justify-items-center">
           <img
@@ -297,6 +536,7 @@ export const Home = () => {
       </section>
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-12 space-y-16">
+        {/* Featured Section */}
         {!isCatalogLoading && featuredArticles.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-8 border-b border-gray-200 pb-4">
@@ -317,12 +557,17 @@ export const Home = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {featuredArticles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+                <ArticleCard
+                  key={article.id}
+                  article={article}
+                  onClick={() => handleArticleClick(article)}
+                />
               ))}
             </div>
           </section>
         )}
 
+        {/* Catalogue Section */}
         <section id="catalogue">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 border-b border-gray-200 pb-4 gap-4">
             <h2 className="font-serif text-3xl text-gray-900">
@@ -378,7 +623,11 @@ export const Home = () => {
           ) : filteredArticles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {filteredArticles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+                <ArticleCard
+                  key={article.id}
+                  article={article}
+                  onClick={() => handleArticleClick(article)}
+                />
               ))}
             </div>
           ) : (
@@ -407,6 +656,7 @@ export const Home = () => {
         </section>
       </main>
 
+      {/* Weekly Schedule Section */}
       <section className="py-16 bg-gray-100">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="font-serif text-3xl text-gray-900 mb-8 text-center">
@@ -435,11 +685,15 @@ export const Home = () => {
         </div>
       </section>
 
+      {/* Article Detail Modal */}
+      <ArticleModal article={selectedArticle} onClose={closeModal} />
+
       <Footer />
     </div>
   );
 };
 
+// Add this CSS to hide scrollbar while keeping functionality
 if (typeof document !== "undefined") {
   const style = document.createElement("style");
   style.textContent = `

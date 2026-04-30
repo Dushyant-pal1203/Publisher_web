@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS articles (
   page_count INTEGER,
   language TEXT,
   publisher TEXT,
+  stock_quantity INTEGER DEFAULT 0 NOT NULL,
   in_stock BOOLEAN DEFAULT TRUE NOT NULL,
   featured BOOLEAN DEFAULT FALSE NOT NULL,
   created_at TIMESTAMP DEFAULT NOW() NOT NULL,

@@ -9,7 +9,11 @@ export const Header = () => {
       <div className="container-custom">
         <div className="flex justify-between items-center py-4">
           <Link to="/" className="flex items-center space-x-2">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+            <img
+              src="/images/ph-logo.png"
+              alt="Logo"
+              className="h-12 w-12 rounded-full shadow hover:shadow-lg transition"
+            />
             <div>
               <h1 className="text-xl font-bold text-gray-900">
                 Publishing House

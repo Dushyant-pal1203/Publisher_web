@@ -35,7 +35,7 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import { articleAPI } from "@/lib/api";
 
-// Enhanced Article Schema with better validation
+// Enhanced Article Schema with stock quantity
 const articleSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
   author: z
@@ -52,6 +52,10 @@ const articleSchema = z.object({
   page_count: z.number().optional(),
   language: z.string().optional(),
   publisher: z.string().optional(),
+  stock_quantity: z
+    .number()
+    .min(0, "Stock quantity must be 0 or more")
+    .default(0),
   in_stock: z.boolean().default(true),
   featured: z.boolean().default(false),
   cover_image: z.any().optional(),
@@ -147,14 +151,25 @@ export const AdminArticles = () => {
     resolver: zodResolver(articleSchema),
     defaultValues: {
       currency: "INR",
+      stock_quantity: 0,
       in_stock: true,
       featured: false,
     },
   });
 
+  const watchStockQuantity = watch("stock_quantity");
   const watchInStock = watch("in_stock");
   const watchFeatured = watch("featured");
-  const watchType = watch("type");
+
+  // Update in_stock based on stock_quantity
+  useEffect(() => {
+    if (watchStockQuantity !== undefined) {
+      const inStock = watchStockQuantity > 0;
+      if (inStock !== watchInStock) {
+        setValue("in_stock", inStock);
+      }
+    }
+  }, [watchStockQuantity, setValue, watchInStock]);
 
   // Filter articles based on search and type
   const filteredArticles = articles.filter((article) => {
@@ -178,17 +193,30 @@ export const AdminArticles = () => {
     setIsSubmitting(true);
     try {
       const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key === "cover_image" && coverFile) {
-          formData.append("cover_image", coverFile);
-        } else if (
-          value !== undefined &&
-          value !== null &&
-          key !== "cover_image"
-        ) {
-          formData.append(key, value.toString());
-        }
-      });
+
+      // Append all text fields
+      formData.append("title", data.title);
+      formData.append("author", data.author);
+      formData.append("type", data.type);
+      if (data.description) formData.append("description", data.description);
+      formData.append("price", data.price.toString());
+      formData.append("currency", data.currency || "INR");
+      if (data.isbn) formData.append("isbn", data.isbn);
+      if (data.category) formData.append("category", data.category);
+      if (data.published_year)
+        formData.append("published_year", data.published_year.toString());
+      if (data.page_count)
+        formData.append("page_count", data.page_count.toString());
+      if (data.language) formData.append("language", data.language);
+      if (data.publisher) formData.append("publisher", data.publisher);
+      formData.append("stock_quantity", data.stock_quantity.toString());
+      formData.append("in_stock", String(data.in_stock));
+      formData.append("featured", String(data.featured));
+
+      // Append cover image only if a new file is selected
+      if (coverFile) {
+        formData.append("cover_image", coverFile);
+      }
 
       if (editingArticle) {
         await articleAPI.update(editingArticle.id, formData);
@@ -197,13 +225,16 @@ export const AdminArticles = () => {
         await articleAPI.create(formData);
         toast.success("Article created successfully");
       }
+
       await fetchArticles();
       handleCloseModal();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Submit error:", error);
       toast.error(
-        editingArticle
-          ? "Failed to update article"
-          : "Failed to create article",
+        error.response?.data?.error ||
+          (editingArticle
+            ? "Failed to update article"
+            : "Failed to create article"),
       );
     } finally {
       setIsSubmitting(false);
@@ -212,12 +243,28 @@ export const AdminArticles = () => {
 
   const handleEdit = (article: any) => {
     setEditingArticle(article);
-    setCoverPreview(article.cover_image_url || null);
-    Object.keys(article).forEach((key) => {
-      if (key !== "cover_image_url") {
-        setValue(key as any, article[key]);
-      }
+    setCoverPreview(null);
+    setCoverFile(null);
+
+    // Reset form with article data
+    reset({
+      title: article.title,
+      author: article.author,
+      type: article.type,
+      description: article.description || "",
+      price: article.price,
+      currency: article.currency || "INR",
+      isbn: article.isbn || "",
+      category: article.category || "",
+      published_year: article.published_year || undefined,
+      page_count: article.page_count || undefined,
+      language: article.language || "",
+      publisher: article.publisher || "",
+      stock_quantity: article.stock_quantity || 0,
+      in_stock: article.in_stock,
+      featured: article.featured,
     });
+
     setIsModalOpen(true);
   };
 
@@ -239,12 +286,39 @@ export const AdminArticles = () => {
     setEditingArticle(null);
     setCoverPreview(null);
     setCoverFile(null);
-    reset();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    reset({
+      currency: "INR",
+      stock_quantity: 0,
+      in_stock: true,
+      featured: false,
+    });
   };
 
   const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Only JPG, PNG, GIF, or WEBP images are allowed");
+        return;
+      }
+
       setCoverFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -262,11 +336,21 @@ export const AdminArticles = () => {
     }
   };
 
-  // Get stats
+  // Calculate total value correctly based on price * stock_quantity
   const totalArticles = articles.length;
-  const inStockCount = articles.filter((a) => a.in_stock).length;
+  const totalStockCount = articles.reduce(
+    (sum, a) => sum + (a.stock_quantity || 0),
+    0,
+  );
   const featuredCount = articles.filter((a) => a.featured).length;
-  const totalValue = articles.reduce((sum, a) => sum + (a.price || 0), 0);
+
+  // Fix: Calculate total value as price × stock_quantity for each item
+  const totalValue = articles.reduce((sum, a) => {
+    const price =
+      typeof a.price === "string" ? parseFloat(a.price) : a.price || 0;
+    const quantity = a.stock_quantity || 0;
+    return sum + price * quantity;
+  }, 0);
 
   return (
     <div>
@@ -311,8 +395,10 @@ export const AdminArticles = () => {
             <Archive className="h-6 w-6 text-green-600" />
           </div>
           <div>
-            <p className="text-sm text-gray-500">In Stock</p>
-            <p className="text-2xl font-bold text-green-600">{inStockCount}</p>
+            <p className="text-sm text-gray-500">Total Stock</p>
+            <p className="text-2xl font-bold text-green-600">
+              {totalStockCount}
+            </p>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
@@ -333,7 +419,13 @@ export const AdminArticles = () => {
           <div>
             <p className="text-sm text-gray-500">Total Value (INR)</p>
             <p className="text-2xl font-bold text-purple-600">
-              ₹{totalValue.toLocaleString()}
+              ₹
+              {typeof totalValue === "number"
+                ? totalValue.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })
+                : "0.00"}
             </p>
           </div>
         </div>
@@ -401,6 +493,9 @@ export const AdminArticles = () => {
                   Price
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Stock
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -414,7 +509,7 @@ export const AdminArticles = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                       <p className="text-gray-500">Loading articles...</p>
@@ -423,7 +518,7 @@ export const AdminArticles = () => {
                 </tr>
               ) : paginatedArticles.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Package className="h-12 w-12 text-gray-300" />
                       <p className="text-gray-500">No articles found</p>
@@ -457,9 +552,17 @@ export const AdminArticles = () => {
                       <td className="px-6 py-4">
                         {article.cover_image_url ? (
                           <img
-                            src={article.cover_image_url}
+                            src={`http://localhost:3000${article.cover_image_url}`}
                             alt={article.title}
                             className="h-12 w-10 object-cover rounded border border-gray-200"
+                            onError={(e) => {
+                              console.error(
+                                "Image failed to load:",
+                                article.cover_image_url,
+                              );
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
                           />
                         ) : (
                           <div className="h-12 w-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
@@ -497,6 +600,17 @@ export const AdminArticles = () => {
                               ? "$"
                               : "€"}
                           {article.price}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`font-medium ${
+                            (article.stock_quantity || 0) > 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          {article.stock_quantity || 0}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -646,10 +760,28 @@ export const AdminArticles = () => {
                     <button
                       type="button"
                       onClick={removeCoverImage}
-                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                     >
                       <X className="h-3 w-3" />
                     </button>
+                  </div>
+                ) : editingArticle?.cover_image_url && !coverFile ? (
+                  <div className="relative">
+                    <img
+                      src={`http://localhost:3000${editingArticle.cover_image_url}`}
+                      alt="Current cover"
+                      className="h-32 w-24 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeCoverImage}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                    <p className="text-xs text-center text-gray-500 mt-1">
+                      Current
+                    </p>
                   </div>
                 ) : (
                   <div className="h-32 w-24 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
@@ -662,20 +794,30 @@ export const AdminArticles = () => {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleCoverImageChange}
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                   className="hidden"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <Upload className="h-4 w-4" />
-                  {coverPreview ? "Change Image" : "Upload Cover"}
+                  {coverPreview ||
+                  (editingArticle?.cover_image_url && !coverFile)
+                    ? "Change Image"
+                    : "Upload Cover"}
                 </button>
                 <p className="text-xs text-gray-500 mt-2">
-                  JPG, PNG or WebP. Max 10 MB.
+                  JPG, PNG or WebP. Max 5 MB.
                 </p>
+                {editingArticle?.cover_image_url &&
+                  !coverFile &&
+                  !coverPreview && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Current image will be kept if you don't upload a new one
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -737,33 +879,64 @@ export const AdminArticles = () => {
               )}
             </div>
 
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                {...register("description")}
+                rows={4}
+                placeholder="Enter a detailed description of the article..."
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              />
+            </div>
+
             {/* Price and Currency */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Price <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
-                <input
-                  type="number"
-                  step="0.01"
-                  {...register("price", { valueAsNumber: true })}
-                  placeholder="0.00"
-                  className={`flex-1 px-4 py-2.5 border ${errors.price ? "border-red-500" : "border-gray-300"} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                />
                 <select
                   {...register("currency")}
-                  className="w-24 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-20 px-2 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="INR">₹ INR</option>
                   <option value="USD">$ USD</option>
                   <option value="EUR">€ EUR</option>
                 </select>
+                <input
+                  type="number"
+                  step="0.01"
+                  {...register("price", { valueAsNumber: true })}
+                  placeholder="0.00"
+                  className={`flex-1 px-4 py-2.5 w-10 border ${errors.price ? "border-red-500" : "border-gray-300"} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                />
               </div>
               {errors.price && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.price.message}
                 </p>
               )}
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                {...register("category")}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select category</option>
+                {categoryOptions.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* ISBN */}
@@ -774,18 +947,6 @@ export const AdminArticles = () => {
               <input
                 {...register("isbn")}
                 placeholder="ISBN number"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Publisher */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Publisher
-              </label>
-              <input
-                {...register("publisher")}
-                placeholder="Publisher name"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -834,60 +995,67 @@ export const AdminArticles = () => {
               </select>
             </div>
 
-            {/* Category */}
+            {/* Publisher */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
+                Publisher
               </label>
-              <select
-                {...register("category")}
+              <input
+                {...register("publisher")}
+                placeholder="Publisher name"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select category</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              {...register("description")}
-              rows={4}
-              placeholder="Enter a detailed description of the article..."
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-            />
+            {/* Stock Quantity */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Stock Quantity <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                {...register("stock_quantity", { valueAsNumber: true })}
+                placeholder="Number of copies in stock"
+                className={`w-full px-4 py-2.5 border ${errors.stock_quantity ? "border-red-500" : "border-gray-300"} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+              />
+              {errors.stock_quantity && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.stock_quantity.message}
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Number of copies available for sale
+              </p>
+            </div>
           </div>
 
           {/* Status Toggles */}
           <div className="grid grid-cols-2 gap-4 pt-2">
-            <label className="flex items-center justify-between p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-              <div>
-                <span className="font-medium text-gray-700">In Stock</span>
-                <p className="text-xs text-gray-500">Available for purchase</p>
-              </div>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  {...register("in_stock")}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-11 h-6 rounded-full transition-colors ${watchInStock ? "bg-green-500" : "bg-gray-300"} flex items-center`}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white transform transition-transform ${watchInStock ? "translate-x-5" : "translate-x-0.5"}`}
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium text-gray-700">In Stock</span>
+                  <p className="text-xs text-gray-500">
+                    Automatically set based on stock quantity
+                  </p>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    {...register("in_stock")}
+                    disabled
+                    className="sr-only"
                   />
+                  <div
+                    className={`w-11 h-6 rounded-full ${watchInStock ? "bg-green-500" : "bg-gray-300"} flex items-center opacity-75`}
+                  >
+                    <div
+                      className={`w-5 h-5 rounded-full bg-white transform transition-transform ${watchInStock ? "translate-x-5" : "translate-x-0.5"}`}
+                    />
+                  </div>
                 </div>
               </div>
-            </label>
+            </div>
 
             <label className="flex items-center justify-between p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
               <div>

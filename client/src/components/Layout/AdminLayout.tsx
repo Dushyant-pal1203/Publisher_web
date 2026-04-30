@@ -68,7 +68,7 @@ export const AdminLayout = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <div className="p-8">
+        <div className="p-8 bg-[#F6F4EE]">
           <Outlet />
         </div>
       </div>

@@ -152,6 +152,7 @@ router.post(
         page_count,
         language,
         publisher,
+        stock_quantity = 0, // Added with default value
         in_stock = true,
         featured = false,
       } = req.body;
@@ -164,11 +165,17 @@ router.post(
 
       const cover_image_url = req.file ? `/uploads/${req.file.filename}` : null;
 
+      // Calculate in_stock based on stock_quantity if needed
+      const stockQty = parseInt(stock_quantity) || 0;
+      const finalInStock =
+        stockQty > 0 ? true : in_stock === "true" || in_stock === true;
+
       const result = await pool.query(
         `INSERT INTO articles 
        (title, author, type, description, price, currency, cover_image_url, 
-        category, isbn, published_year, page_count, language, publisher, in_stock, featured) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+        category, isbn, published_year, page_count, language, publisher, 
+        stock_quantity, in_stock, featured) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
        RETURNING *`,
         [
           title,
@@ -184,7 +191,8 @@ router.post(
           page_count,
           language,
           publisher,
-          in_stock === "true" || in_stock === true,
+          stockQty,
+          finalInStock,
           featured === "true" || featured === true,
         ],
       );
@@ -233,6 +241,7 @@ router.put(
         "page_count",
         "language",
         "publisher",
+        "stock_quantity",
         "in_stock",
         "featured",
       ];
@@ -241,6 +250,21 @@ router.put(
         if (updates[key] !== undefined) {
           fields.push(`${key} = $${paramIndex}`);
           values.push(updates[key]);
+          paramIndex++;
+        }
+      }
+
+      // If stock_quantity is being updated, also update in_stock accordingly
+      if (updates.stock_quantity !== undefined) {
+        const stockQty = parseInt(updates.stock_quantity) || 0;
+        const shouldBeInStock = stockQty > 0;
+
+        // Check if in_stock is already in the updates
+        const hasInStock = fields.some((field) => field.includes("in_stock"));
+
+        if (!hasInStock) {
+          fields.push(`in_stock = $${paramIndex}`);
+          values.push(shouldBeInStock);
           paramIndex++;
         }
       }

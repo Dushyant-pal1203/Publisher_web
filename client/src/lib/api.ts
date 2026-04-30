@@ -40,8 +40,28 @@ export const articleAPI = {
   getAll: () => api.get("/articles"),
   getPublic: () => api.get("/articles/public"),
   getById: (id: number) => api.get(`/articles/${id}`),
-  create: (data: any) => api.post("/articles", data),
-  update: (id: number, data: any) => api.put(`/articles/${id}`, data),
+  create: (data: any) => {
+    // If data is FormData, don't set Content-Type header
+    if (data instanceof FormData) {
+      return api.post("/articles", data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+    return api.post("/articles", data);
+  },
+  update: (id: number, data: any) => {
+    // If data is FormData, don't set Content-Type header
+    if (data instanceof FormData) {
+      return api.put(`/articles/${id}`, data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+    return api.put(`/articles/${id}`, data);
+  },
   delete: (id: number) => api.delete(`/articles/${id}`),
 };
 

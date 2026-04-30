@@ -13,6 +13,7 @@ export interface Article {
   page_count?: number;
   language?: string;
   publisher?: string;
+  stock_quantity: number;
   in_stock: boolean;
   featured: boolean;
   created_at: string;
@@ -31,6 +32,7 @@ export interface ArticleFormData {
   page_count?: number;
   language?: string;
   publisher?: string;
+  stock_quantity: number;
   in_stock: boolean;
   featured: boolean;
 }

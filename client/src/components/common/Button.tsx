@@ -31,7 +31,7 @@ export const Button = ({
 
   return (
     <button
-      className={`${variants[variant]} ${sizes[size]} flex items-center rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`${variants[variant]} ${sizes[size]} flex items-center justify-center rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >

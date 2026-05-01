@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Calendar,
   User,
-  DollarSign,
+  IndianRupee,
   X,
   Package,
 } from "lucide-react";
@@ -183,7 +183,7 @@ const ArticleCard = ({
 
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <span className="font-bold text-gray-900 flex items-center gap-1">
-            {/* <DollarSign className="h-4 w-4" /> */}
+            {/* <IndianRupee className="h-4 w-4" /> */}
             {article.currency === "INR"
               ? "₹"
               : article.currency === "USD"

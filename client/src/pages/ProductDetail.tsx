@@ -550,9 +550,52 @@ export const ProductDetail = () => {
     }
   };
 
+  // Replace the existing handleAddToCart function with this:
   const handleAddToCart = () => {
+    // Add null check at the beginning
+    if (!product) {
+      toast.error("Product not found");
+      return;
+    }
+
+    const imageUrl = getImageUrl(product.cover_image_url);
+
+    const cartItem = {
+      id: product.id,
+      title: product.title,
+      author: product.author,
+      price: product.price,
+      currency: product.currency,
+      quantity: quantity,
+      cover_image_url: imageUrl,
+    };
+
+    // Store in localStorage for checkout page
+    const existingCart = localStorage.getItem("checkoutCart");
+    let cartItems = [];
+
+    if (existingCart) {
+      cartItems = JSON.parse(existingCart);
+      const existingItemIndex = cartItems.findIndex(
+        (item: any) => item.id === product.id,
+      );
+
+      if (existingItemIndex !== -1) {
+        cartItems[existingItemIndex].quantity += quantity;
+      } else {
+        cartItems.push(cartItem);
+      }
+    } else {
+      cartItems = [cartItem];
+    }
+
+    localStorage.setItem("checkoutCart", JSON.stringify(cartItems));
+
+    // Navigate to checkout page with cart items
+    navigate("/checkout", { state: { cartItems } });
+
     toast.success(
-      `Added ${quantity} ${quantity === 1 ? "copy" : "copies"} of "${product?.title}" to cart`,
+      `${quantity} ${quantity === 1 ? "copy" : "copies"} added to cart!`,
     );
   };
 

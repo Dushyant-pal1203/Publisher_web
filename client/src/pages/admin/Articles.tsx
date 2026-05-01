@@ -17,7 +17,7 @@ import {
   Eye,
   Archive,
   Package,
-  DollarSign,
+  IndianRupee,
   BookOpen,
   Calendar,
   Globe,
@@ -414,7 +414,7 @@ export const AdminArticles = () => {
         </div>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
           <div className="p-3 bg-purple-50 rounded-lg">
-            <DollarSign className="h-6 w-6 text-purple-600" />
+            <IndianRupee className="h-6 w-6 text-purple-600" />
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Value (INR)</p>

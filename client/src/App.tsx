@@ -17,6 +17,9 @@ import { AdminSettings } from "@/pages/admin/Settings";
 import { AdminLayout } from "@/components/Layout/AdminLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { Checkout } from "@/pages/Checkout";
+import { Orders } from "@/pages/Orders";
+import { OrderConfirmation } from "./pages/OrderConfirmation";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -45,6 +48,9 @@ function App() {
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/catalogue" element={<Catalogue />} />
         <Route path="/about" element={<About />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-confirmation" element={<OrderConfirmation />} />
+        <Route path="/orders" element={<Orders />} />
 
         {/* Admin Routes */}
         <Route

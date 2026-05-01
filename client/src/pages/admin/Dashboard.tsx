@@ -1,7 +1,7 @@
 import { useDashboard } from "@/hooks/useDashboard";
 import { StatsCard } from "@/components/UI/StatsCard";
 import { StatusBadge } from "@/components/UI/StatusBadge";
-import { DollarSign, ShoppingBag, Clock, BookOpen } from "lucide-react";
+import { IndianRupee, ShoppingBag, Clock, BookOpen } from "lucide-react";
 
 export const AdminDashboard = () => {
   const { stats, loading } = useDashboard();
@@ -18,7 +18,7 @@ export const AdminDashboard = () => {
     {
       title: "Total Revenue",
       value: `₹${stats?.totalRevenue || 0}`,
-      icon: <DollarSign className="h-6 w-6" />,
+      icon: <IndianRupee className="h-6 w-6" />,
     },
     {
       title: "Total Orders",

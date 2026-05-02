@@ -23,10 +23,11 @@ const validatePhoneNumber = (phone) => {
 
 // Get current user - FIXED VERSION
 router.get("/me", async (req, res) => {
-  console.log("GET /me - Session:", req.session?.userId);
+  console.log("GET /me - Session ID:", req.sessionID);
+  console.log("GET /me - Session userId:", req.session?.userId);
 
   if (!req.session || !req.session.userId) {
-    console.log("No session found");
+    console.log("No session or userId found");
     return res.status(401).json({ error: "Authentication required" });
   }
 
@@ -63,10 +64,6 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "Email and password required" });
   }
 
-  if (!validateEmail(email)) {
-    return res.status(400).json({ error: "Invalid email format" });
-  }
-
   try {
     const result = await pool.query(
       "SELECT * FROM admin_users WHERE email = $1",
@@ -74,12 +71,10 @@ router.post("/login", async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      console.log("User not found:", email);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
     const user = result.rows[0];
-    console.log("User found:", user.email);
 
     if (!user.password) {
       return res
@@ -90,7 +85,6 @@ router.post("/login", async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
-      console.log("Invalid password for user:", email);
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -108,19 +102,26 @@ router.post("/login", async (req, res) => {
     req.session.userId = user.id;
     req.session.userRole = user.role;
 
-    console.log("Login successful for:", email);
-    console.log("Session set with userId:", req.session.userId);
+    // Save session explicitly
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ error: "Failed to save session" });
+      }
 
-    res.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        phone_number: user.phone_number,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role,
-      },
+      console.log("Session saved. userId:", req.session.userId);
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          phone_number: user.phone_number,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+        },
+      });
     });
   } catch (error) {
     console.error("Email Login error:", error);

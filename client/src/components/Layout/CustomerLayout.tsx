@@ -1,42 +1,65 @@
-// client/src/components/Layout/AdminLayout.tsx
+// client/src/components/Layout/CustomerLayout.tsx
 import { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import {
   LayoutDashboard,
-  BookOpen,
   ShoppingBag,
-  Settings,
+  User,
   LogOut,
   Menu,
   X,
-  User,
+  Home,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 
-export const AdminLayout = () => {
+export const CustomerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useCustomerAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const navigation = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Articles", href: "/admin/articles", icon: BookOpen },
-    { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
-    { name: "Settings", href: "/admin/settings", icon: Settings },
+    { name: "Dashboard", href: "/customer/dashboard", icon: LayoutDashboard },
+    { name: "My Orders", href: "/customer/orders", icon: ShoppingBag },
+    { name: "Profile", href: "/customer/profile", icon: User },
   ];
 
   const handleLogout = async () => {
     await logout();
-    navigate("/admin/login");
+    navigate("/");
   };
 
   const isActive = (href: string) => location.pathname === href;
 
-  // Close sidebar on route change on mobile
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // If no user, show message (should be redirected by parent)
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">Please login to access this page.</p>
+          <Link
+            to="/customer/login"
+            className="text-blue-600 hover:text-blue-700 mt-2 inline-block"
+          >
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,20 +73,22 @@ export const AdminLayout = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-64 bg-[#1D2735] border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <Link to="/admin/dashboard" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
               <img
                 src="/images/ph-logo.png"
                 alt="Logo"
                 className="h-8 w-8 rounded-full"
+                onError={(e) => {
+                  e.currentTarget.src = "https://via.placeholder.com/32";
+                }}
               />
-              <span className="font-bold text-gray-900">Admin Panel</span>
+              <span className="font-bold text-gray-50">My Account</span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -73,7 +98,6 @@ export const AdminLayout = () => {
             </button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -83,8 +107,8 @@ export const AdminLayout = () => {
                   to={item.href}
                   className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.href)
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-blue-50 text-gray-700"
+                      : "text-gray-50 hover:bg-gray-700"
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -94,9 +118,8 @@ export const AdminLayout = () => {
             })}
           </nav>
 
-          {/* User Section */}
           <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-4 p-2 bg-gray-50 rounded-lg">
               <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                 <User className="h-5 w-5 text-blue-600" />
               </div>
@@ -109,11 +132,18 @@ export const AdminLayout = () => {
                 </p>
               </div>
             </div>
+            <Link
+              to="/"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-50 hover:bg-gray-100 hover:text-gray-700 transition-colors mb-2"
+            >
+              <Home className="h-5 w-5" />
+              Back to Store
+            </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-5 w-5" />
               Logout
             </button>
           </div>
@@ -122,7 +152,6 @@ export const AdminLayout = () => {
 
       {/* Main Content */}
       <div className="lg:pl-64">
-        {/* Header */}
         <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between px-4 py-3 lg:px-6">
             <button
@@ -131,14 +160,17 @@ export const AdminLayout = () => {
             >
               <Menu className="h-5 w-5 text-gray-600" />
             </button>
-            <h1 className="text-lg font-semibold text-gray-900">
-              {navigation.find((n) => isActive(n.href))?.name || "Dashboard"}
-            </h1>
-            <div className="w-8" />
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">
+                Welcome, {user?.first_name || "Customer"}
+              </span>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <User className="h-4 w-4 text-blue-600" />
+              </div>
+            </div>
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="p-4 lg:p-6">
           <Outlet />
         </main>

@@ -50,7 +50,7 @@ export const AdminSettings = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow p-6 max-w-3xl"
+        className="bg-white rounded-lg shadow p-6 max-w-7xl"
       >
         <div className="space-y-6">
           <div>

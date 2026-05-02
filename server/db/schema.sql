@@ -148,6 +148,19 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Add password column to users table if not exists
+-- Add password column to users table if not exists
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+
+-- Add phone_number column if not exists (might already exist)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20);
+
+-- Create index on phone_number for faster lookups
+CREATE INDEX IF NOT EXISTS idx_users_phone_number ON users(phone_number);
+
+-- Create index on email for faster lookups
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
 -- Create triggers (dropping existing ones first)
 DROP TRIGGER IF EXISTS update_articles_updated_at ON articles;
 CREATE TRIGGER update_articles_updated_at BEFORE UPDATE ON articles

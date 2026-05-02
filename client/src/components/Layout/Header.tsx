@@ -1,15 +1,22 @@
 // client/src/components/Layout/Header.tsx
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, User, Menu, X } from "lucide-react";
+import { BookOpen, User, Menu, X, Settings } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/common/Button";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 
 export const Header = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user: customerUser, logout: customerLogout } = useCustomerAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
+
+  const handleCustomerLogout = async () => {
+    await customerLogout();
+    closeMenu();
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -25,6 +32,9 @@ export const Header = () => {
               src="/images/ph-logo.png"
               alt="Logo"
               className="h-12 w-12 rounded-full shadow hover:shadow-lg transition"
+              onError={(e) => {
+                e.currentTarget.src = "https://via.placeholder.com/48";
+              }}
             />
             <div>
               <h1 className="text-xl font-bold text-gray-900">
@@ -56,11 +66,61 @@ export const Header = () => {
             >
               About
             </Link>
+
+            {/* Customer Account Dropdown */}
+            {customerUser ? (
+              <div className="relative group">
+                <button className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition">
+                  <User className="h-4 w-4" />
+                  <span>Account</span>
+                </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <Link
+                    to="/customer/dashboard"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={closeMenu}
+                  >
+                    Dashboard
+                  </Link>
+                  <Link
+                    to="/customer/orders"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={closeMenu}
+                  >
+                    My Orders
+                  </Link>
+                  <Link
+                    to="/customer/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={closeMenu}
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleCustomerLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                onClick={() => navigate("/customer/login")}
+                className="gap-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                <User className="h-4 w-4" />
+                <span>Login</span>
+              </Button>
+            )}
+
+            {/* Admin Button */}
             <Button
               onClick={() => navigate("/admin/login")}
-              className="gap-2 text-white rounded-lg hover:bg-gray-800 transition"
+              variant="secondary"
+              className="gap-2 border border-gray-300"
             >
-              <User className="h-4 w-4" />
+              <Settings className="h-4 w-4" />
               <span>Admin</span>
             </Button>
           </nav>
@@ -107,14 +167,59 @@ export const Header = () => {
             >
               About
             </Link>
+
+            {customerUser ? (
+              <>
+                <Link
+                  to="/customer/dashboard"
+                  onClick={closeMenu}
+                  className="text-gray-700 hover:text-blue-600 transition py-2"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/customer/orders"
+                  onClick={closeMenu}
+                  className="text-gray-700 hover:text-blue-600 transition py-2"
+                >
+                  My Orders
+                </Link>
+                <Link
+                  to="/customer/profile"
+                  onClick={closeMenu}
+                  className="text-gray-700 hover:text-blue-600 transition py-2"
+                >
+                  Profile
+                </Link>
+                <button
+                  onClick={handleCustomerLogout}
+                  className="text-left text-red-600 hover:text-red-700 transition py-2"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <Button
+                onClick={() => {
+                  closeMenu();
+                  navigate("/customer/login");
+                }}
+                className="gap-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition w-full"
+              >
+                <User className="h-4 w-4" />
+                <span>Login</span>
+              </Button>
+            )}
+
             <Button
               onClick={() => {
                 closeMenu();
                 navigate("/admin/login");
               }}
-              className="gap-2 text-white rounded-lg hover:bg-gray-800 transition w-full"
+              variant="secondary"
+              className="gap-2 border border-gray-300 rounded-lg w-full"
             >
-              <User className="h-4 w-4" />
+              <Settings className="h-4 w-4" />
               <span>Admin</span>
             </Button>
           </nav>

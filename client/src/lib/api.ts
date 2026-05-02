@@ -39,6 +39,7 @@ export const authAPI = {
 export const articleAPI = {
   getAll: () => api.get("/articles"),
   getPublic: () => api.get("/articles/public"),
+  getPublicById: (id: number) => api.get(`/articles/public/${id}`),
   getById: (id: number) => api.get(`/articles/${id}`),
   getRelated: (id: number, type?: string) => {
     // Try to get related by type first, fallback to all articles

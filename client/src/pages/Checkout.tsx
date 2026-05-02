@@ -1,9 +1,11 @@
-// src/pages/Checkout.tsx
+// client/src/pages/Checkout.tsx
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 import { Button } from "@/components/common/Button";
+import { orderAPI } from "@/lib/api";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import {
   ArrowLeft,
   CreditCard,
@@ -13,6 +15,8 @@ import {
   Mail,
   User,
   AlertCircle,
+  UserCheck,
+  LogIn,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -38,6 +42,7 @@ type OrderFormData = {
 export const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user: customerUser, loading: authLoading } = useCustomerAuth();
   const [cartItems, setCartItems] = useState<CheckoutItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<OrderFormData>({
@@ -48,7 +53,6 @@ export const Checkout = () => {
     orderNotes: "",
     paymentMethod: "whatsapp",
   });
-
   const [errors, setErrors] = useState<Partial<OrderFormData>>({});
 
   useEffect(() => {
@@ -57,7 +61,6 @@ export const Checkout = () => {
     if (items && items.length > 0) {
       setCartItems(items);
     } else {
-      // Try to get from localStorage as fallback
       const savedCart = localStorage.getItem("checkoutCart");
       if (savedCart) {
         setCartItems(JSON.parse(savedCart));
@@ -67,6 +70,19 @@ export const Checkout = () => {
       }
     }
   }, [location, navigate]);
+
+  // Auto-fill form if customer is logged in
+  useEffect(() => {
+    if (customerUser && !formData.fullName) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName:
+          `${customerUser.first_name || ""} ${customerUser.last_name || ""}`.trim(),
+        email: customerUser.email || "",
+        phoneNumber: customerUser.phone_number || "",
+      }));
+    }
+  }, [customerUser]);
 
   const calculateTotal = () => {
     return cartItems.reduce(
@@ -107,7 +123,6 @@ export const Checkout = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error for this field when user starts typing
     if (errors[name as keyof OrderFormData]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -115,6 +130,38 @@ export const Checkout = () => {
 
   const handlePaymentMethodChange = (method: "whatsapp" | "bank_transfer") => {
     setFormData((prev) => ({ ...prev, paymentMethod: method }));
+  };
+
+  const saveOrderToDatabase = async (orderData: any) => {
+    try {
+      // Create order in database for each item
+      const orderPromises = cartItems.map(async (item) => {
+        const orderPayload = {
+          article_id: item.id,
+          article_title: item.title,
+          article_author: item.author,
+          quantity: item.quantity,
+          customer_name: orderData.customer.name,
+          customer_email: orderData.customer.email,
+          customer_phone: orderData.customer.phone,
+          customer_address: orderData.customer.address,
+          payment_method: orderData.paymentMethod,
+          total_amount: item.price * item.quantity,
+          currency: item.currency || "INR",
+          notes: orderData.notes,
+          status: "pending",
+        };
+
+        const response = await orderAPI.create(orderPayload);
+        return response.data.order;
+      });
+
+      const savedOrders = await Promise.all(orderPromises);
+      return savedOrders;
+    } catch (error) {
+      console.error("Failed to save order to database:", error);
+      throw error;
+    }
   };
 
   const handleSubmitOrder = async () => {
@@ -137,36 +184,44 @@ export const Checkout = () => {
       notes: formData.orderNotes,
       paymentMethod: formData.paymentMethod,
       orderDate: new Date().toISOString(),
+      customerId: customerUser?.id || null,
     };
 
     try {
+      // Save order to database
+      const savedOrders = await saveOrderToDatabase(orderData);
+      console.log("Orders saved to database:", savedOrders);
+
       if (formData.paymentMethod === "whatsapp") {
-        // Format WhatsApp message
         const message = formatWhatsAppMessage(orderData);
-        const whatsappNumber = "+919310004022"; // Replace with your business WhatsApp number
+        const whatsappNumber = "+919310004022";
         const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, "_blank");
-
-        // Save order to localStorage for reference
-        localStorage.setItem("pendingOrder", JSON.stringify(orderData));
         toast.success("Redirecting to WhatsApp to complete your order!");
-
-        // Clear cart after redirect
-        setTimeout(() => {
-          localStorage.removeItem("checkoutCart");
-          navigate("/order-confirmation", { state: { orderData } });
-        }, 2000);
       } else {
-        // Bank Transfer / UPI
-        // Here you would typically integrate with a payment gateway
-        toast.success("Payment details sent to your email/phone!");
-
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        localStorage.removeItem("checkoutCart");
-        navigate("/order-confirmation", { state: { orderData } });
+        toast.success("Order placed successfully! We'll contact you shortly.");
       }
+
+      // Save to localStorage for order history (backup)
+      const savedOrdersLocal = localStorage.getItem("userOrders");
+      const orders = savedOrdersLocal ? JSON.parse(savedOrdersLocal) : [];
+      const orderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const newOrder = {
+        ...orderData,
+        orderId,
+        status: "pending",
+        databaseId: savedOrders[0]?.id,
+      };
+      orders.unshift(newOrder);
+      localStorage.setItem("userOrders", JSON.stringify(orders));
+
+      // Clear cart
+      localStorage.removeItem("checkoutCart");
+
+      // Navigate to order confirmation
+      setTimeout(() => {
+        navigate("/order-confirmation", { state: { orderData, savedOrders } });
+      }, 1500);
     } catch (error) {
       console.error("Order submission failed:", error);
       toast.error("Failed to place order. Please try again.");
@@ -182,32 +237,34 @@ export const Checkout = () => {
     message += `Phone: ${order.customer.phone}\n`;
     message += `Email: ${order.customer.email || "Not provided"}\n`;
     message += `Address: ${order.customer.address}\n\n`;
-
     message += `*Order Items:*\n`;
     order.items.forEach((item: any, index: number) => {
       message += `${index + 1}. ${item.title} - ${item.quantity} x ${item.currency === "INR" ? "₹" : "₹"}${item.price}\n`;
     });
-
-    message += `\n*Total Amount:* ${order.total === 7899 ? "₹" : "₹"}${order.total}\n`;
-
+    message += `\n*Total Amount:* ₹${order.total}\n`;
     if (order.notes) {
       message += `\n*Notes:* ${order.notes}\n`;
     }
-
     message += `\n*Payment Method:* ${order.paymentMethod === "whatsapp" ? "WhatsApp Order" : "Bank Transfer/UPI"}\n`;
-    message += `\n_Order placed via website checkout_`;
-
+    message += `\n_Customer ${customerUser ? "is logged in" : "is a guest"}_`;
     return message;
   };
 
   const total = calculateTotal();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Back Button */}
         <Button
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-2 text-gray-600 hover:bg-gray-100 hover:text-black mb-6 transition-colors"
@@ -215,6 +272,52 @@ export const Checkout = () => {
           <ArrowLeft className="h-4 w-4" />
           Back to Product
         </Button>
+
+        {/* Customer Info Banner */}
+        {customerUser && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <UserCheck className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm font-medium text-green-800">
+                  You are ordering as {customerUser.first_name}{" "}
+                  {customerUser.last_name}
+                </p>
+                <p className="text-xs text-green-600">
+                  Your order will be saved to your account
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!customerUser && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <LogIn className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-800">
+                  Checking out as a guest
+                </p>
+                <p className="text-xs text-blue-600">
+                  <Link
+                    to="/customer/login"
+                    className="underline hover:text-blue-800"
+                  >
+                    Login
+                  </Link>{" "}
+                  to save your order history and track easily
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/customer/login"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
+            >
+              Login
+            </Link>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Order Summary - Left Column */}
@@ -257,8 +360,7 @@ export const Checkout = () => {
                           Qty: {item.quantity}
                         </span>
                         <span className="font-medium text-gray-900">
-                          {item.currency === "INR" ? "₹" : "$"}
-                          {item.price * item.quantity}
+                          ₹{item.price * item.quantity}
                         </span>
                       </div>
                     </div>
@@ -269,10 +371,7 @@ export const Checkout = () => {
               <div className="p-6 bg-gray-50 border-t border-gray-200">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900">
-                    {cartItems[0]?.currency === "INR" ? "₹" : "$"}
-                    {total}
-                  </span>
+                  <span className="text-gray-900">₹{total}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-600">Shipping</span>
@@ -284,8 +383,7 @@ export const Checkout = () => {
                       Total amount
                     </span>
                     <span className="text-2xl font-bold text-blue-600">
-                      {cartItems[0]?.currency === "INR" ? "₹" : "$"}
-                      {total}
+                      ₹{total}
                     </span>
                   </div>
                 </div>
@@ -301,7 +399,7 @@ export const Checkout = () => {
                   Place your order
                 </h1>
                 <p className="text-gray-600 text-sm mt-1">
-                  Journal of South Asian Studies — Vol. 12 by Editorial Board
+                  Complete your purchase
                 </p>
               </div>
 
@@ -368,7 +466,6 @@ export const Checkout = () => {
                     Customer Information
                   </h3>
                   <div className="space-y-4">
-                    {/* Full Name */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Full name <span className="text-red-500">*</span>
@@ -396,7 +493,6 @@ export const Checkout = () => {
                       )}
                     </div>
 
-                    {/* Phone Number */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Phone number <span className="text-red-500">*</span>
@@ -424,7 +520,6 @@ export const Checkout = () => {
                       )}
                     </div>
 
-                    {/* Email (Optional) */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Email{" "}
@@ -452,7 +547,6 @@ export const Checkout = () => {
                       )}
                     </div>
 
-                    {/* Delivery Address */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Delivery address <span className="text-red-500">*</span>
@@ -480,7 +574,6 @@ export const Checkout = () => {
                       )}
                     </div>
 
-                    {/* Order Notes (Optional) */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Order notes{" "}
@@ -512,8 +605,7 @@ export const Checkout = () => {
                   <Button
                     onClick={handleSubmitOrder}
                     disabled={loading}
-                    variant="success"
-                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700"
                   >
                     {loading ? "Processing..." : "Confirm order"}
                   </Button>

@@ -9,7 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { Home } from "@/pages/Home";
 import { Catalogue } from "@/pages/Catalogue";
 import { About } from "@/pages/About";
-import { ProductDetail } from "@/pages/ProductDetail";
+import { ProductDetail } from "@/pages/products/ProductDetail";
 import { AdminLogin } from "@/pages/admin/Login";
 import { AdminDashboard } from "@/pages/admin/Dashboard";
 import { AdminArticles } from "@/pages/admin/Articles";
@@ -25,9 +25,9 @@ import { CustomerLayout } from "@/components/Layout/CustomerLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { ScrollToTop } from "./components/ScrollToTop";
-import { Checkout } from "@/pages/Checkout";
-import { Orders } from "@/pages/Orders";
-import { OrderConfirmation } from "./pages/OrderConfirmation";
+import { Checkout } from "@/pages/payment/Checkout";
+import { Orders } from "@/pages/orders/Orders";
+import { OrderConfirmation } from "./pages/orders/OrderConfirmation";
 
 // Admin Protected Route - checks for admin user
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {

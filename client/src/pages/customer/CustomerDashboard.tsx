@@ -59,10 +59,22 @@ export const CustomerDashboard = () => {
       const pending = orders.filter((o: CustomerOrder) =>
         ["pending", "processing", "shipped"].includes(o.status),
       );
-      const totalSpent = delivered.reduce(
-        (sum: number, o: CustomerOrder) => sum + o.total_amount,
-        0,
-      );
+
+      // FIXED: Calculate total spent from delivered orders with proper number conversion
+      const totalSpent = delivered.reduce((sum: number, o: CustomerOrder) => {
+        // Convert to number if it's a string
+        let amount =
+          typeof o.total_amount === "string"
+            ? parseFloat(o.total_amount as unknown as string)
+            : Number(o.total_amount);
+
+        // Handle invalid numbers
+        if (isNaN(amount)) {
+          amount = 0;
+        }
+
+        return sum + amount;
+      }, 0);
 
       setStats({
         totalOrders: orders.length,
@@ -208,7 +220,7 @@ export const CustomerDashboard = () => {
             <div>
               <p className="text-sm text-gray-500">Total Spent</p>
               <p className="text-2xl font-bold text-purple-600">
-                ₹{stats.totalSpent.toLocaleString()}
+                ₹{stats.totalSpent.toFixed(2)}
               </p>
             </div>
           </div>
@@ -275,7 +287,10 @@ export const CustomerDashboard = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-gray-900">
-                      ₹{order.total_amount.toLocaleString()}
+                      ₹
+                      {typeof order.total_amount === "number"
+                        ? order.total_amount.toLocaleString()
+                        : order.total_amount}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Qty: {order.quantity}

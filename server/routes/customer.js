@@ -2,6 +2,9 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const { pool } = require("../db");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const router = express.Router();
 
@@ -9,6 +12,42 @@ const router = express.Router();
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+// Configure multer for user avatar uploads
+const userUploadDir = path.join(__dirname, "../uploads/users");
+if (!fs.existsSync(userUploadDir)) {
+  fs.mkdirSync(userUploadDir, { recursive: true });
+}
+
+const userStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, userUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "avatar-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const userFileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(
+    path.extname(file.originalname).toLowerCase(),
+  );
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed (jpeg, jpg, png, gif, webp)"));
+  }
+};
+
+const uploadUserAvatar = multer({
+  storage: userStorage,
+  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880 }, // 5MB
+  fileFilter: userFileFilter,
+});
 
 const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -642,6 +681,125 @@ router.get("/orders/:id", async (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to fetch order details", details: error.message });
+  }
+});
+
+// Add this route after your existing routes - Upload avatar
+router.post(
+  "/upload-avatar",
+  uploadUserAvatar.single("avatar"),
+  async (req, res) => {
+    console.log(
+      "Upload avatar request for customerId:",
+      req.session?.customerId,
+    );
+
+    if (!req.session || !req.session.customerId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    try {
+      // Get current user to delete old avatar if exists
+      const currentUser = await pool.query(
+        "SELECT profile_image_url FROM users WHERE id = $1",
+        [req.session.customerId],
+      );
+
+      // Delete old avatar file if exists
+      if (currentUser.rows[0]?.profile_image_url) {
+        const oldAvatarPath = path.join(
+          __dirname,
+          "..",
+          currentUser.rows[0].profile_image_url,
+        );
+        if (fs.existsSync(oldAvatarPath)) {
+          fs.unlinkSync(oldAvatarPath);
+        }
+      }
+
+      // Update user with new avatar URL
+      const avatarUrl = `/uploads/users/${req.file.filename}`;
+      const result = await pool.query(
+        `UPDATE users 
+         SET profile_image_url = $1, updated_at = NOW()
+         WHERE id = $2
+         RETURNING id, email, first_name, last_name, phone_number, profile_image_url, created_at`,
+        [avatarUrl, req.session.customerId],
+      );
+
+      console.log(
+        "Avatar uploaded successfully for user:",
+        req.session.customerId,
+      );
+      res.json({
+        success: true,
+        message: "Avatar uploaded successfully",
+        user: result.rows[0],
+        avatarUrl: avatarUrl,
+      });
+    } catch (error) {
+      console.error("Upload avatar error:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to upload avatar", details: error.message });
+    }
+  },
+);
+
+// Delete avatar route
+router.delete("/delete-avatar", async (req, res) => {
+  console.log("Delete avatar request for customerId:", req.session?.customerId);
+
+  if (!req.session || !req.session.customerId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  try {
+    // Get current user
+    const currentUser = await pool.query(
+      "SELECT profile_image_url FROM users WHERE id = $1",
+      [req.session.customerId],
+    );
+
+    // Delete file if exists
+    if (currentUser.rows[0]?.profile_image_url) {
+      const avatarPath = path.join(
+        __dirname,
+        "..",
+        currentUser.rows[0].profile_image_url,
+      );
+      if (fs.existsSync(avatarPath)) {
+        fs.unlinkSync(avatarPath);
+      }
+    }
+
+    // Update user to remove avatar URL
+    const result = await pool.query(
+      `UPDATE users 
+       SET profile_image_url = NULL, updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, email, first_name, last_name, phone_number, profile_image_url, created_at`,
+      [req.session.customerId],
+    );
+
+    console.log(
+      "Avatar deleted successfully for user:",
+      req.session.customerId,
+    );
+    res.json({
+      success: true,
+      message: "Avatar deleted successfully",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Delete avatar error:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to delete avatar", details: error.message });
   }
 });
 

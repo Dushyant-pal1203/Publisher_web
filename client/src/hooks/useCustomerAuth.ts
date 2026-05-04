@@ -1,4 +1,4 @@
-// client/src/hooks/useCustomerAuth.ts
+// client/src/hooks/useCustomerAuth.js
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -28,7 +28,6 @@ export const useCustomerAuth = () => {
       const response = await customerAuthAPI.me();
       setUser(response.data.user);
     } catch (error) {
-      // User is not authenticated - this is fine for public pages
       setUser(null);
     } finally {
       setLoading(false);
@@ -131,6 +130,30 @@ export const useCustomerAuth = () => {
     }
   };
 
+  const uploadAvatar = async (file: File) => {
+    try {
+      const response = await customerAuthAPI.uploadAvatar(file);
+      setUser(response.data.user);
+      toast.success("Profile picture updated successfully!");
+      return true;
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to upload avatar");
+      return false;
+    }
+  };
+
+  const deleteAvatar = async () => {
+    try {
+      const response = await customerAuthAPI.deleteAvatar();
+      setUser(response.data.user);
+      toast.success("Profile picture removed successfully!");
+      return true;
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to delete avatar");
+      return false;
+    }
+  };
+
   const logout = async () => {
     try {
       await customerAuthAPI.logout();
@@ -151,6 +174,8 @@ export const useCustomerAuth = () => {
     sendOTP,
     updateProfile,
     changePassword,
+    uploadAvatar,
+    deleteAvatar,
     logout,
   };
 };

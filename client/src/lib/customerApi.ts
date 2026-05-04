@@ -1,8 +1,8 @@
 // client/src/lib/customerApi.ts
-import axios from "axios";
+import axios, { AxiosInstance } from "axios";
 import toast from "react-hot-toast";
 
-const customerApi = axios.create({
+const customerApi: AxiosInstance = axios.create({
   baseURL: "/api/customer",
   withCredentials: true,
   headers: {
@@ -10,6 +10,7 @@ const customerApi = axios.create({
   },
 });
 
+// Response interceptor
 customerApi.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,36 +30,99 @@ customerApi.interceptors.response.use(
   },
 );
 
+// Types
+export interface CustomerUser {
+  id: string;
+  email?: string;
+  phone_number?: string;
+  first_name: string;
+  last_name: string;
+  profile_image_url?: string;
+  created_at?: string;
+}
+
+export interface SignupData {
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface LoginWithOTPData {
+  phone_number: string;
+  otp: string;
+}
+
+export interface UpdateProfileData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone_number?: string;
+}
+
+export interface ChangePasswordData {
+  current_password: string;
+  new_password: string;
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  user?: CustomerUser;
+  message?: string;
+  error?: string;
+  [key: string]: any;
+}
+
+// API methods
 export const customerAuthAPI = {
-  me: () => customerApi.get("/me"),
-  signup: (data: {
-    email: string;
-    password: string;
-    first_name?: string;
-    last_name?: string;
-    phone_number?: string;
-  }) => customerApi.post("/signup", data),
-  login: (data: { email: string; password: string }) =>
+  uploadAvatar: (file: File): Promise<ApiResponse> => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    return customerApi.post("/upload-avatar", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
+  deleteAvatar: (): Promise<ApiResponse> =>
+    customerApi.delete("/delete-avatar"),
+
+  me: (): Promise<ApiResponse> => customerApi.get("/me"),
+
+  signup: (data: SignupData): Promise<ApiResponse> =>
+    customerApi.post("/signup", data),
+
+  login: (data: LoginData): Promise<ApiResponse> =>
     customerApi.post("/login", data),
-  loginWithOTP: (data: { phone_number: string; otp: string }) =>
+
+  loginWithOTP: (data: LoginWithOTPData): Promise<ApiResponse> =>
     customerApi.post("/login-otp", data),
-  sendOTP: (phone_number: string) =>
+
+  sendOTP: (phone_number: string): Promise<ApiResponse> =>
     customerApi.post("/send-otp", { phone_number }),
-  logout: () => customerApi.post("/logout"),
-  updateProfile: (data: {
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone_number?: string;
-  }) => customerApi.put("/profile", data),
-  changePassword: (data: { current_password: string; new_password: string }) =>
+
+  logout: (): Promise<ApiResponse> => customerApi.post("/logout"),
+
+  updateProfile: (data: UpdateProfileData): Promise<ApiResponse> =>
+    customerApi.put("/profile", data),
+
+  changePassword: (data: ChangePasswordData): Promise<ApiResponse> =>
     customerApi.put("/change-password", data),
 };
 
 export const customerOrderAPI = {
-  getMyOrders: () => customerApi.get("/my-orders"),
-  getOrderDetails: (id: number) => customerApi.get(`/orders/${id}`),
-  trackOrder: (id: number) => customerApi.get(`/orders/${id}/track`),
+  getMyOrders: (): Promise<ApiResponse> => customerApi.get("/my-orders"),
+  getOrderDetails: (id: number): Promise<ApiResponse> =>
+    customerApi.get(`/orders/${id}`),
+  trackOrder: (id: number): Promise<ApiResponse> =>
+    customerApi.get(`/orders/${id}/track`),
 };
 
 export default customerApi;

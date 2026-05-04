@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Ensure uploads directory exists - Fixed path
-const uploadDir = path.join(__dirname, "../uploads"); // Changed from "../../uploads"
+const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -36,7 +36,7 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880 }, // 5MB default
+  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880 },
   fileFilter: fileFilter,
 });
 

@@ -35,6 +35,13 @@ export const CustomerLayout = () => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    const first = user?.first_name?.charAt(0) || "";
+    const last = user?.last_name?.charAt(0) || "";
+    return `${first}${last}`.toUpperCase() || "U";
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -88,7 +95,9 @@ export const CustomerLayout = () => {
                   e.currentTarget.src = "https://via.placeholder.com/32";
                 }}
               />
-              <span className="font-bold text-gray-50">My Account</span>
+              <span className="font-bold text-gray-50">
+                {user?.first_name || "Customer"} {user?.last_name || ""}
+              </span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -120,8 +129,24 @@ export const CustomerLayout = () => {
 
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3 mb-4 p-2 bg-gray-50 rounded-lg">
-              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <User className="h-5 w-5 text-blue-600" />
+              {/* Sidebar User Avatar */}
+              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                {user?.profile_image_url ? (
+                  <img
+                    src={user.profile_image_url}
+                    alt={`${user.first_name} ${user.last_name}`}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "";
+                      e.currentTarget.style.display = "none";
+                      e.currentTarget.parentElement?.classList.add(
+                        "bg-blue-100",
+                      );
+                    }}
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-blue-600" />
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
@@ -161,12 +186,27 @@ export const CustomerLayout = () => {
               <Menu className="h-5 w-5 text-gray-600" />
             </button>
             <div className="flex items-center gap-3">
+              {/* Header User Avatar */}
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                {user?.profile_image_url ? (
+                  <img
+                    src={user.profile_image_url}
+                    alt={`${user.first_name} ${user.last_name}`}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "";
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <span className="text-xs font-medium text-blue-600">
+                    {getUserInitials()}
+                  </span>
+                )}
+              </div>
               <span className="text-sm text-gray-600">
                 Welcome, {user?.first_name || "Customer"}
               </span>
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <User className="h-4 w-4 text-blue-600" />
-              </div>
             </div>
           </div>
         </header>

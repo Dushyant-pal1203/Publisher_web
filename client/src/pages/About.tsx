@@ -1,5 +1,7 @@
+// client/src/pages/About.tsx
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
+import { useSettings } from "@/hooks/useSettings";
 import {
   BookOpen,
   Users,
@@ -11,6 +13,8 @@ import {
 } from "lucide-react";
 
 export const About = () => {
+  const { settings, loading } = useSettings();
+
   const stats = [
     { label: "Books Published", value: "500+", icon: BookOpen },
     { label: "Happy Readers", value: "50K+", icon: Users },
@@ -39,6 +43,18 @@ export const About = () => {
     },
   ];
 
+  if (loading) {
+    return (
+      <div>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div>
       <Header />
@@ -47,11 +63,11 @@ export const About = () => {
       <section className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-20">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            About Publishing House
+            About {settings.publisher_name}
           </h1>
           <p className="text-lg md:text-xl text-blue-100 max-w-3xl mx-auto">
-            Since 1995, we've been committed to publishing works that educate,
-            inspire, and connect readers across the globe.
+            {settings.tagline ||
+              "Since 1995, we've been committed to publishing works that educate, inspire, and connect readers across the globe."}
           </p>
         </div>
       </section>
@@ -64,10 +80,8 @@ export const About = () => {
               Our Mission
             </h2>
             <p className="text-lg text-gray-600 leading-relaxed mb-8">
-              To bridge cultures and generations through the power of the
-              written word. We believe in publishing content that challenges
-              perspectives, sparks conversations, and contributes to a more
-              informed and empathetic world.
+              {settings.about ||
+                "To bridge cultures and generations through the power of the written word. We believe in publishing content that challenges perspectives, sparks conversations, and contributes to a more informed and empathetic world."}
             </p>
             <div className="h-1 w-20 bg-blue-600 mx-auto"></div>
           </div>
@@ -107,10 +121,10 @@ export const About = () => {
               <div className="space-y-4 text-gray-600 leading-relaxed">
                 <p>
                   Founded in 1995 by a group of passionate academics and
-                  writers, Publishing House began as a small independent press
-                  with a big vision. What started in a modest office with just
-                  three employees has grown into a respected publishing house
-                  with a global reach.
+                  writers, {settings.publisher_name} began as a small
+                  independent press with a big vision. What started in a modest
+                  office with just three employees has grown into a respected
+                  publishing house with a global reach.
                 </p>
                 <p>
                   Over the past three decades, we've published over 500 titles
@@ -130,7 +144,7 @@ export const About = () => {
                 <img
                   src="/images/about/office.png"
                   alt="Our Office"
-                  className="w-full h-full object-fit"
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src =
                       "https://via.placeholder.com/600x600?text=Our+Office";
@@ -202,7 +216,7 @@ export const About = () => {
                   <img
                     src={member.image}
                     alt={member.name}
-                    className="w-full h-full object-fit"
+                    className="w-full h-full object-cover"
                     onError={(e) => {
                       e.currentTarget.src =
                         "https://via.placeholder.com/200x200?text=Team+Member";
@@ -270,19 +284,44 @@ export const About = () => {
                   Contact Information
                 </h3>
                 <div className="space-y-3">
+                  {/* Email */}
                   <div className="flex items-center gap-3 text-gray-600">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                    <span>
-                      123 Publishing Lane, Literary District, NY 10001
-                    </span>
+                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    {settings.contact_email ? (
+                      <a
+                        href={`mailto:${settings.contact_email}`}
+                        className="hover:text-blue-600 transition"
+                      >
+                        {settings.contact_email}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">Not set</span>
+                    )}
                   </div>
+
+                  {/* Phone/WhatsApp Number - Show even if empty with debug */}
                   <div className="flex items-center gap-3 text-gray-600">
-                    <Phone className="w-5 h-5 text-blue-600" />
-                    <span>+1 (555) 123-4567</span>
+                    <Phone className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    {settings.whatsapp_number ? (
+                      <a
+                        href={`tel:${settings.whatsapp_number}`}
+                        className="hover:text-blue-600 transition"
+                      >
+                        {settings.whatsapp_number}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">Not set</span>
+                    )}
                   </div>
+
+                  {/* Address */}
                   <div className="flex items-center gap-3 text-gray-600">
-                    <Mail className="w-5 h-5 text-blue-600" />
-                    <span>contact@publishinghouse.com</span>
+                    <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    {settings.contact_address ? (
+                      <span>{settings.contact_address}</span>
+                    ) : (
+                      <span className="text-gray-400">Not set</span>
+                    )}
                   </div>
                 </div>
               </div>

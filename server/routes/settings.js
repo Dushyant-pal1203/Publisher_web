@@ -33,7 +33,6 @@ router.get("/", requireAuth, async (req, res) => {
 
     res.json({ success: true, settings: result.rows[0] });
   } catch (error) {
-    console.error("Get settings error:", error);
     res.status(500).json({ error: "Failed to fetch settings" });
   }
 });
@@ -111,7 +110,6 @@ router.put("/", requireAuth, requireAdmin, async (req, res) => {
 
     res.json({ success: true, settings: result.rows[0] });
   } catch (error) {
-    console.error("Update settings error:", error);
     res.status(500).json({ error: "Failed to update settings" });
   }
 });
@@ -120,7 +118,7 @@ router.put("/", requireAuth, requireAdmin, async (req, res) => {
 router.get("/public", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT publisher_name, tagline, about, contact_email, contact_address, currency FROM settings LIMIT 1",
+      "SELECT publisher_name, tagline, about, contact_email, contact_address, currency, whatsapp_number FROM settings LIMIT 1",
     );
 
     if (result.rows.length === 0) {
@@ -133,13 +131,13 @@ router.get("/public", async (req, res) => {
           contact_email: "",
           contact_address: "",
           currency: "INR",
+          whatsapp_number: "",
         },
       });
     }
 
     res.json({ success: true, settings: result.rows[0] });
   } catch (error) {
-    console.error("Get public settings error:", error);
     res.status(500).json({ error: "Failed to fetch settings" });
   }
 });

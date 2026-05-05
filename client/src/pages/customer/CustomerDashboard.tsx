@@ -14,7 +14,10 @@ import {
   Eye,
   Search,
   Calendar,
+  ShoppingCart,
+  Plus,
 } from "lucide-react";
+import { Button } from "@/components/common/Button";
 
 interface CustomerOrder {
   id: number;
@@ -148,7 +151,7 @@ export const CustomerDashboard = () => {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-8 mb-8 text-white">
+      <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl p-8 mb-8 text-white">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-2">
@@ -159,18 +162,18 @@ export const CustomerDashboard = () => {
               publications.
             </p>
           </div>
-          <Link
-            to="/customer/orders/new"
-            className="bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
-          >
-            + New Order
-          </Link>
+          <Button className="gap-2" variant="secondary">
+            <Link to="/catalogue" className="flex gap-2 items-center">
+              <Plus className="h-4 w-4" />
+              New Order
+            </Link>
+          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-105">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-100 rounded-lg">
               <ShoppingBag className="h-6 w-6 text-blue-600" />
@@ -184,7 +187,7 @@ export const CustomerDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-105">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-green-100 rounded-lg">
               <CheckCircle className="h-6 w-6 text-green-600" />
@@ -198,7 +201,7 @@ export const CustomerDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-105">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-yellow-100 rounded-lg">
               <Clock className="h-6 w-6 text-yellow-600" />
@@ -212,7 +215,7 @@ export const CustomerDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-105">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-purple-100 rounded-lg">
               <Package className="h-6 w-6 text-purple-600" />
@@ -236,13 +239,12 @@ export const CustomerDashboard = () => {
             </h2>
             <p className="text-sm text-gray-500 mt-1">Your latest purchases</p>
           </div>
-          <Link
-            to="/customer/orders"
-            className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            View All Orders
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <Button className="gap-2">
+            <Link to="/customer/orders" className="flex gap-2 items-center">
+              View All Orders
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
 
         {loading ? (
@@ -250,15 +252,15 @@ export const CustomerDashboard = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
         ) : recentOrders.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="p-12 text-center justify-items-center">
             <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No orders yet</p>
-            <Link
-              to="/catalogue"
-              className="text-blue-600 text-sm mt-2 inline-block hover:underline"
-            >
-              Start Shopping →
-            </Link>
+            <Button className="gap-2 mt-4">
+              <Link to="/catalogue" className="flex gap-2 items-center">
+                <ShoppingCart className="h-4 w-4" />
+                Start Shopping
+              </Link>
+            </Button>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -326,21 +328,24 @@ export const CustomerDashboard = () => {
           <p className="text-sm text-gray-600 mb-4">
             Contact our support team for assistance with your orders.
           </p>
-          <button className="text-purple-600 text-sm font-medium hover:text-purple-700">
-            Contact Support →
-          </button>
+          <Button className="gap-2 hover:text-purple-700">
+            <Link to="/about" className="flex gap-2 items-center">
+              Contact Support
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
           <h3 className="font-semibold text-gray-900 mb-2">Discover More</h3>
           <p className="text-sm text-gray-600 mb-4">
             Explore our latest collection of books and journals.
           </p>
-          <Link
-            to="/catalogue"
-            className="text-blue-600 text-sm font-medium hover:text-blue-700"
-          >
-            Browse Catalogue →
-          </Link>
+          <Button className="gap-2">
+            <Link to="/catalogue" className="flex gap-2 items-center">
+              Browse Catalogue
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

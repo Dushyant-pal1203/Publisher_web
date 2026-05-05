@@ -12,8 +12,29 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect to admin login for admin routes
+    const isAdminRoute = window.location.pathname.includes("/admin");
+
     if (error.response?.status === 401) {
-      if (!window.location.pathname.includes("/admin/login")) {
+      // For customer routes, just show a toast and don't redirect
+      if (
+        !isAdminRoute &&
+        !window.location.pathname.includes("/customer/login")
+      ) {
+        // Don't show error for checkout - let it continue with localStorage
+        if (!window.location.pathname.includes("/checkout")) {
+          toast.error("Session expired. Please login again.");
+        }
+        // Clear any customer tokens if they exist
+        localStorage.removeItem("customer_token");
+        localStorage.removeItem("customer_user");
+        // Don't redirect - let the customer continue as guest
+        return Promise.reject(error);
+      }
+
+      // Only redirect to admin login for admin routes
+      if (isAdminRoute && !window.location.pathname.includes("/admin/login")) {
+        localStorage.removeItem("admin_token");
         window.location.href = "/admin/login";
         toast.error("Session expired. Please login again.");
       }
@@ -91,6 +112,16 @@ export const orderAPI = {
   updateStatus: (id: number, status: string) =>
     api.patch(`/orders/${id}/status`, { status }),
   delete: (id: number) => api.delete(`/orders/${id}`),
+};
+
+// Customer Order API (for customer routes)
+export const customerOrderAPI = {
+  getMyOrders: () => api.get("/customer/orders"),
+  getOrderDetails: (id: number) => api.get(`/customer/orders/${id}`),
+  cancelOrder: (id: number) => api.post(`/customer/orders/${id}/cancel`),
+
+  // ✅ ADD THIS
+  syncOrder: (data: any) => api.post("/customer/orders", data),
 };
 
 // Dashboard API

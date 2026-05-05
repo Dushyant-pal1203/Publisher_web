@@ -278,14 +278,16 @@ export const Home = () => {
 
       <section className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-12">
         <div className="max-w-6xl mx-auto px-6 text-center justify-items-center">
-          <img
-            src="/images/ph-logo.png"
-            alt="Logo"
-            className="w-64 h-64 mb-2 rounded-full shadow hover:shadow-lg transition"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
-          />
+          <a href="/" className="flex">
+            <img
+              src="/images/ph-logo.png"
+              alt="Logo"
+              className="w-40 md:w-64 h-40 md:h-64 mb-2 rounded-full shadow hover:scale-105 hover:shadow-lg hover:shadow-cyan-600 transition-all duration-300"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          </a>
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
             Stories that shape minds
           </h1>
@@ -416,7 +418,7 @@ export const Home = () => {
             {Object.entries(weeklySchedule).map(([day, items]) => (
               <div
                 key={day}
-                className="bg-white rounded-sm p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg p-4 shadow-sm border hover:scale-105 transition-all duration-200 border-gray-100 hover:shadow-md "
               >
                 <h3 className="font-bold text-blue-600 mb-3 text-sm tracking-wider">
                   {day.toUpperCase()}

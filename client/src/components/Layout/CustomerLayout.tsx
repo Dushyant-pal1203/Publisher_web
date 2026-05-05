@@ -177,7 +177,7 @@ export const CustomerLayout = () => {
 
       {/* Main Content */}
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-200">
+        <header className="sticky top-0 z-10 bg-gradient-to-r from-gray-900 to-gray-800 text-white border-b border-gray-200">
           <div className="flex items-center justify-between px-4 py-3 lg:px-6">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -187,7 +187,7 @@ export const CustomerLayout = () => {
             </button>
             <div className="flex items-center gap-3">
               {/* Header User Avatar */}
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+              <div className="h-10 w-10 rounded-full border-2 border-gray-50 bg-blue-100 flex items-center justify-center overflow-hidden">
                 {user?.profile_image_url ? (
                   <img
                     src={user.profile_image_url}
@@ -204,7 +204,7 @@ export const CustomerLayout = () => {
                   </span>
                 )}
               </div>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-50">
                 Welcome, {user?.first_name || "Customer"}
               </span>
             </div>

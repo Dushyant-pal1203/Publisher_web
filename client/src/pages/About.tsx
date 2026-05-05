@@ -60,8 +60,18 @@ export const About = () => {
       <Header />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white py-20">
-        <div className="max-w-7xl mx-auto px-6 text-center">
+      <section className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20">
+        <div className="max-w-7xl mx-auto px-6 text-center justify-items-center">
+          <a href="/" className="flex">
+            <img
+              src="/images/ph-logo.png"
+              alt="Logo"
+              className="w-40 md:w-64 h-40 md:h-64 mb-2 rounded-full shadow hover:scale-105 hover:shadow-xl hover:shadow-cyan-600 transition-all duration-300"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+            />
+          </a>
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
             About {settings.publisher_name}
           </h1>
@@ -278,20 +288,20 @@ export const About = () => {
                 </button>
               </form>
             </div>
-            <div className="space-y-6">
+            <div className="flex flex-col justify-between gap-8">
               <div className="bg-white p-6 rounded-lg shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Contact Information
                 </h3>
                 <div className="space-y-3">
                   {/* Email */}
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div>
                     {settings.contact_email ? (
                       <a
                         href={`mailto:${settings.contact_email}`}
-                        className="hover:text-blue-600 transition"
+                        className="hover:text-blue-600 transition flex items-center gap-3 text-gray-600"
                       >
+                        <Mail className="w-5 h-5 flex-shrink-0" />
                         {settings.contact_email}
                       </a>
                     ) : (
@@ -300,13 +310,13 @@ export const About = () => {
                   </div>
 
                   {/* Phone/WhatsApp Number - Show even if empty with debug */}
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <Phone className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div>
                     {settings.whatsapp_number ? (
                       <a
                         href={`tel:${settings.whatsapp_number}`}
-                        className="hover:text-blue-600 transition"
+                        className="hover:text-blue-600 transition flex items-center gap-3 text-gray-600"
                       >
+                        <Phone className="w-5 h-5 flex-shrink-0" />
                         {settings.whatsapp_number}
                       </a>
                     ) : (
@@ -316,7 +326,7 @@ export const About = () => {
 
                   {/* Address */}
                   <div className="flex items-center gap-3 text-gray-600">
-                    <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <MapPin className="w-5 h-5 flex-shrink-0" />
                     {settings.contact_address ? (
                       <span>{settings.contact_address}</span>
                     ) : (

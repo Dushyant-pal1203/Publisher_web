@@ -15,6 +15,8 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/common/Button";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useSettings } from "@/hooks/useSettings";
+import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -66,6 +68,7 @@ export const Header = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  const { getCartCount } = useCart();
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -80,7 +83,7 @@ export const Header = () => {
             <img
               src="/images/ph-logo.png"
               alt="Logo"
-              className="h-12 w-12 rounded-full shadow hover:shadow-lg transition"
+              className="h-12 w-12 rounded-full shadow hover:shadow-lg hover:shadow-cyan-600 transition"
               onError={(e) => {
                 e.currentTarget.src = "https://via.placeholder.com/48";
               }}
@@ -229,12 +232,21 @@ export const Header = () => {
             ) : (
               <Button
                 onClick={() => navigate("/customer/login")}
-                className="gap-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="gap-2"
+                variant="primary"
               >
                 <User className="h-4 w-4" />
                 <span>Login</span>
               </Button>
             )}
+            <Button onClick={() => navigate("/cart")} className="relative p-2">
+              <ShoppingCart className="h-5 w-5" />
+              {getCartCount() > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {getCartCount()}
+                </span>
+              )}
+            </Button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -349,7 +361,7 @@ export const Header = () => {
                   closeMenu();
                   navigate("/customer/login");
                 }}
-                className="gap-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition w-full"
+                className="gap-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 <User className="h-4 w-4" />
                 <span>Login</span>
@@ -362,7 +374,7 @@ export const Header = () => {
                 navigate("/admin/login");
               }}
               variant="secondary"
-              className="gap-2 border border-gray-300 rounded-lg w-full"
+              className="gap-2 border border-gray-300 rounded-lg"
             >
               <Settings className="h-4 w-4" />
               <span>Admin</span>

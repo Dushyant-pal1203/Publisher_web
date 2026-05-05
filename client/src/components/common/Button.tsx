@@ -17,10 +17,14 @@ export const Button = ({
   ...props
 }: ButtonProps) => {
   const variants = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white",
-    secondary: "bg-gray-600 hover:bg-gray-700 text-white",
-    danger: "bg-red-600 hover:bg-red-700 text-white",
-    success: "bg-green-600 hover:bg-green-700 text-white",
+    primary:
+      "bg-gradient-to-r from-gray-900 to-gray-800 hover:from-white hover:to-white hover:text-gray-900 text-white border border-gray-700 hover:border-gray-300",
+    secondary:
+      "bg-gray-600 hover:bg-gray-700 text-white border border-gray-500 hover:border-gray-400",
+    danger:
+      "bg-red-600 hover:bg-red-700 text-white border border-red-500 hover:border-red-400",
+    success:
+      "bg-green-600 hover:bg-green-700 text-white border border-green-500 hover:border-green-400",
   };
 
   const sizes = {
@@ -31,14 +35,12 @@ export const Button = ({
 
   return (
     <button
-      className={`${variants[variant]} ${sizes[size]} flex items-center justify-center rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`${variants[variant]} ${sizes[size]} flex items-center justify-center rounded-lg font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >
       {isLoading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-        </div>
+        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
       ) : (
         children
       )}

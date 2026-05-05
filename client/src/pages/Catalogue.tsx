@@ -38,7 +38,7 @@ const ArticleType = {
   BOOK: "book",
   JOURNAL: "journal",
   MAGAZINE: "magazine",
-  NEWSPAPER: "newspaper",
+  eBook: "eBook",
 } as const;
 
 const getImageUrl = (url: string | null): string | undefined => {
@@ -60,7 +60,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
         return "from-blue-500 to-cyan-600";
       case "magazine":
         return "from-pink-500 to-rose-600";
-      case "newspaper":
+      case "eBook":
         return "from-green-500 to-emerald-600";
       default:
         return "from-gray-500 to-gray-600";
@@ -75,7 +75,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
         return "bg-blue-100 text-blue-700";
       case "magazine":
         return "bg-pink-100 text-pink-700";
-      case "newspaper":
+      case "eBook":
         return "bg-green-100 text-green-700";
       default:
         return "bg-gray-100 text-gray-700";
@@ -96,7 +96,7 @@ const ArticleCard = ({ article }: { article: Article }) => {
           <img
             src={imageUrl}
             alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-fill group-hover:scale-105 transition-transform duration-500"
             onError={() => setImageError(true)}
           />
         ) : (
@@ -275,7 +275,7 @@ export const Catalogue = () => {
           </h1>
           <p className="text-lg text-gray-300 max-w-2xl">
             Explore our extensive collection of books, journals, magazines, and
-            newspapers
+            eBooks
           </p>
         </div>
       </section>

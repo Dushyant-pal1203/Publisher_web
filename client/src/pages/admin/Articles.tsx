@@ -70,8 +70,8 @@ const typeConfig: Record<string, { label: string; color: string; bg: string }> =
     book: { label: "Book", color: "text-purple-700", bg: "bg-purple-50" },
     journal: { label: "Journal", color: "text-blue-700", bg: "bg-blue-50" },
     magazine: { label: "Magazine", color: "text-pink-700", bg: "bg-pink-50" },
-    newspaper: {
-      label: "Newspaper",
+    eBook: {
+      label: "eBook",
       color: "text-green-700",
       bg: "bg-green-50",
     },
@@ -446,7 +446,7 @@ export const AdminArticles = () => {
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {["all", "book", "journal", "magazine", "newspaper"].map((type) => (
+            {["all", "book", "journal", "magazine", "eBook"].map((type) => (
               <button
                 key={type}
                 onClick={() => setSelectedType(type)}
@@ -871,7 +871,7 @@ export const AdminArticles = () => {
                 <option value="book">Book</option>
                 <option value="journal">Journal</option>
                 <option value="magazine">Magazine</option>
-                <option value="newspaper">Newspaper</option>
+                <option value="eBook">eBook</option>
               </select>
               {errors.type && (
                 <p className="text-red-500 text-sm mt-1">

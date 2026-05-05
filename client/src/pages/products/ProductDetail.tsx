@@ -1,37 +1,28 @@
-// client/src/pages/ProductDetail.tsx
+// client/src/pages/products/ProductDetail.tsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Layout/Header";
-import { Button } from "@/components/common/Button";
 import { Footer } from "@/components/Layout/Footer";
 import { articleAPI } from "@/lib/api";
-import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
+import { Button } from "@/components/common/Button";
 import {
+  ArrowLeft,
   BookOpen,
   Star,
-  ChevronRight,
   Calendar,
   User,
   Package,
-  Heart,
-  ShoppingCart,
-  Share2,
-  ThumbsUp,
-  MessageCircle,
-  CheckCircle,
-  Filter,
-  SortAsc,
-  AlertCircle,
+  Hash,
+  Globe,
+  Printer,
+  CreditCard,
   Minus,
   Plus,
-  Truck,
-  Shield,
-  RotateCcw,
-  ArrowLeft,
-  LogIn,
+  ShoppingCart,
+  CheckCircle,
 } from "lucide-react";
-import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
 
 type Article = {
   id: number;
@@ -54,615 +45,174 @@ type Article = {
   created_at: string;
 };
 
-type Review = {
-  id: number;
-  user_id: number;
-  user_name: string;
-  rating: number;
-  title: string;
-  comment: string;
-  verified_purchase: boolean;
-  helpful_count: number;
-  created_at: string;
-};
-
-type ReviewStats = {
-  average_rating: number;
-  total_reviews: number;
-  rating_distribution: {
-    1: number;
-    2: number;
-    3: number;
-    4: number;
-    5: number;
-  };
-};
-
-type ReviewSubmission = {
-  rating: number;
-  title: string;
-  comment: string;
-  product_id: number;
-  user_name: string;
-  user_email: string;
-};
-
-const getImageUrl = (url: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (url.startsWith("http")) return url;
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
-  return `${baseUrl}${url}`;
-};
-
-const StarRating = ({
-  rating,
-  size = "md",
-  showNumber = false,
-}: {
-  rating: number;
-  size?: "sm" | "md" | "lg";
-  showNumber?: boolean;
-}) => {
-  const sizes = { sm: "h-3 w-3", md: "h-4 w-4", lg: "h-5 w-5" };
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
-
-  return (
-    <div className="flex items-center gap-1">
-      <div className="flex">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`${sizes[size]} ${
-              i < fullStars
-                ? "text-yellow-400 fill-current"
-                : i === fullStars && hasHalfStar
-                  ? "text-yellow-400 fill-current opacity-50"
-                  : "text-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-      {showNumber && (
-        <span className="text-sm font-semibold text-gray-700 ml-1">
-          {rating.toFixed(1)}
-        </span>
-      )}
-    </div>
-  );
-};
-
-const RelatedArticleCard = ({
-  article,
-  onClick,
-}: {
-  article: Article;
-  onClick: () => void;
-}) => {
-  const imageUrl = getImageUrl(article.cover_image_url);
-  const [imageError, setImageError] = useState(false);
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "book":
-        return "bg-purple-100 text-purple-700";
-      case "journal":
-        return "bg-blue-100 text-blue-700";
-      case "magazine":
-        return "bg-pink-100 text-pink-700";
-      case "newspaper":
-        return "bg-green-100 text-green-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  return (
-    <div
-      onClick={onClick}
-      className="group bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-300 cursor-pointer"
-    >
-      <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
-        {imageUrl && !imageError ? (
-          <img
-            src={imageUrl}
-            alt={article.title}
-            className="w-full h-full object-fit group-hover:scale-105 transition-transform duration-500"
-            onError={() => setImageError(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <BookOpen className="h-12 w-12 text-gray-400" />
-          </div>
-        )}
-        <div className="absolute bottom-2 left-2">
-          <span
-            className={`inline-block px-2 py-0.5 text-xs font-medium rounded-sm ${getTypeColor(article.type)}`}
-          >
-            {article.type}
-          </span>
-        </div>
-      </div>
-      <div className="p-3">
-        <h4 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1 group-hover:text-blue-600">
-          {article.title}
-        </h4>
-        <p className="text-xs text-gray-500 mb-2">{article.author}</p>
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-gray-900 text-sm">
-            ₹{article.price.toLocaleString()}
-          </span>
-          <button className="text-xs font-medium text-blue-600 hover:text-blue-700">
-            View
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ReviewCard = ({ review }: { review: Review }) => {
-  const [helpful, setHelpful] = useState(false);
-  const [helpfulCount, setHelpfulCount] = useState(review.helpful_count);
-
-  const handleHelpful = async () => {
-    if (!helpful) {
-      try {
-        // This would call an API if implemented
-        setHelpful(true);
-        setHelpfulCount(helpfulCount + 1);
-        toast.success("Thanks for your feedback!");
-      } catch (error) {
-        console.error("Failed to mark as helpful:", error);
-      }
-    }
-  };
-
-  return (
-    <div className="border-b border-gray-200 pb-6">
-      <div className="flex items-start justify-between mb-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <StarRating rating={review.rating} size="sm" />
-            <span className="font-semibold text-gray-900">{review.title}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>{review.user_name}</span>
-            {review.verified_purchase && (
-              <span className="inline-flex items-center gap-1 text-xs text-green-600">
-                <CheckCircle className="h-3 w-3" />
-                Verified Purchase
-              </span>
-            )}
-            <span className="text-xs text-gray-400">
-              {new Date(review.created_at).toLocaleDateString()}
-            </span>
-          </div>
-        </div>
-      </div>
-      <p className="text-gray-700 mt-2 text-sm">{review.comment}</p>
-      <Button
-        onClick={handleHelpful}
-        className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 mt-3 transition-colors"
-      >
-        <ThumbsUp
-          className={`h-3 w-3 ${helpful ? "fill-current text-blue-600" : ""}`}
-        />
-        Helpful ({helpfulCount})
-      </Button>
-    </div>
-  );
-};
-
-const ReviewForm = ({
-  onSubmit,
-  productId,
-}: {
-  onSubmit: (review: ReviewSubmission) => void;
-  productId: number;
-}) => {
-  const [rating, setRating] = useState(5);
-  const [title, setTitle] = useState("");
-  const [comment, setComment] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [hoverRating, setHoverRating] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-
-  const validateForm = () => {
-    if (!name.trim()) {
-      toast.error("Please enter your name");
-      return false;
-    }
-    if (!email.trim() || !email.includes("@")) {
-      toast.error("Please enter a valid email");
-      return false;
-    }
-    if (!title.trim()) {
-      toast.error("Please enter a review title");
-      return false;
-    }
-    if (!comment.trim()) {
-      toast.error("Please enter your review");
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await onSubmit({
-        rating,
-        title,
-        comment,
-        product_id: productId,
-        user_name: name,
-        user_email: email,
-      });
-      setRating(5);
-      setTitle("");
-      setComment("");
-      setName("");
-      setEmail("");
-      toast.success("Review submitted successfully!");
-    } catch (error) {
-      toast.error("Failed to submit review. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Your Rating
-        </label>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHoverRating(star)}
-              onMouseLeave={() => setHoverRating(0)}
-              className="focus:outline-none"
-            >
-              <Star
-                className={`h-6 w-6 ${
-                  star <= (hoverRating || rating)
-                    ? "text-yellow-400 fill-current"
-                    : "text-gray-300"
-                } transition-colors`}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-5">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Name *
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Your Name"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Email *
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Your Email"
-            required
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Review Title *
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Summarize your experience"
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Your Review *
-        </label>
-        <textarea
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="Share your thoughts about this publication..."
-          required
-        />
-      </div>
-
-      <div className="justify-items-center">
-        <Button
-          type="submit"
-          disabled={submitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {submitting ? "Submitting..." : "Submit Review"}
-        </Button>
-      </div>
-    </form>
-  );
-};
-
 export const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user: customerUser } = useCustomerAuth();
-  const [product, setProduct] = useState<Article | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Article[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null);
+  const { addToCart, isInCart, getCartItem, updateCartItemQuantity } =
+    useCart();
+  const { showSuccess, showError } = useToast();
+  const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "reviews">("details");
   const [quantity, setQuantity] = useState(1);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   useEffect(() => {
-    const fetchProductDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        console.log("Fetching product with ID:", id);
-
-        // Fetch product details - this endpoint should be public
-        const response = (await articleAPI.getPublicById)
-          ? await articleAPI.getPublicById(Number(id))
-          : await articleAPI.getById(Number(id));
-
-        console.log("Product API response:", response);
-
-        let productData = null;
-        if (response.data?.data) {
-          productData = response.data.data;
-        } else if (response.data?.article) {
-          productData = response.data.article;
-        } else if (response.data) {
-          productData = response.data;
-        } else {
-          productData = response;
-        }
-
-        if (!productData || !productData.id) {
-          throw new Error("Product not found");
-        }
-
-        setProduct(productData);
-
-        // Fetch related products (public endpoint)
-        try {
-          const relatedResponse = await articleAPI.getPublic();
-          let allArticles = [];
-          if (relatedResponse.data?.articles) {
-            allArticles = relatedResponse.data.articles;
-          } else if (Array.isArray(relatedResponse.data)) {
-            allArticles = relatedResponse.data;
-          }
-          // Filter related by type, exclude current product
-          const related = allArticles
-            .filter(
-              (a: Article) =>
-                a.type === productData.type && a.id !== productData.id,
-            )
-            .slice(0, 4);
-          setRelatedProducts(related);
-        } catch (relatedError) {
-          console.log("Related products not available:", relatedError);
-          setRelatedProducts([]);
-        }
-
-        // Mock reviews for now (since reviews API might not be implemented)
-        setReviews([]);
-        setReviewStats(null);
-      } catch (error: any) {
-        console.error("Failed to fetch product details:", error);
-        setError(error.message || "Failed to load product details");
-        toast.error("Failed to load product details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchProductDetails();
-    } else {
-      setLoading(false);
-      setError("Invalid product ID");
-    }
+    fetchArticle();
   }, [id]);
 
-  const handleSubmitReview = async (reviewData: ReviewSubmission) => {
-    // This would call a reviews API if implemented
-    const newReview = {
-      ...reviewData,
-      id: Date.now(),
-      user_id: 0,
-      verified_purchase: false,
-      helpful_count: 0,
-      created_at: new Date().toISOString(),
-    };
-    setReviews([newReview, ...reviews]);
+  const fetchArticle = async () => {
+    try {
+      setLoading(true);
+      const response = await articleAPI.getPublicById(Number(id));
+      const responseData = response as any;
+      let articleData = null;
 
-    if (reviewStats) {
-      const newAvg =
-        (reviewStats.average_rating * reviewStats.total_reviews +
-          reviewData.rating) /
-        (reviewStats.total_reviews + 1);
-      setReviewStats({
-        ...reviewStats,
-        average_rating: newAvg,
-        total_reviews: reviewStats.total_reviews + 1,
-        rating_distribution: {
-          ...reviewStats.rating_distribution,
-          [reviewData.rating]:
-            reviewStats.rating_distribution[
-              reviewData.rating as keyof typeof reviewStats.rating_distribution
-            ] + 1,
+      if (responseData.data?.article) {
+        articleData = responseData.data.article;
+      } else if (responseData.article) {
+        articleData = responseData.article;
+      } else if (responseData.data && !responseData.data.article) {
+        articleData = responseData.data;
+      } else if (responseData.success && responseData.article) {
+        articleData = responseData.article;
+      } else {
+        articleData = responseData;
+      }
+
+      setArticle(articleData);
+
+      const cartItem = getCartItem(articleData.id);
+      if (cartItem) {
+        setQuantity(cartItem.quantity);
+      } else {
+        setQuantity(1);
+      }
+    } catch (error) {
+      console.error("Failed to fetch article:", error);
+      showError("Failed to load product details");
+      navigate("/");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTypeBadge = (type: string) => {
+    const types: Record<string, { label: string; color: string; bg: string }> =
+      {
+        book: { label: "Book", color: "text-purple-700", bg: "bg-purple-100" },
+        journal: {
+          label: "Journal",
+          color: "text-blue-700",
+          bg: "bg-blue-100",
         },
-      });
-    } else {
-      setReviewStats({
-        average_rating: reviewData.rating,
-        total_reviews: 1,
-        rating_distribution: {
-          1: reviewData.rating === 1 ? 1 : 0,
-          2: reviewData.rating === 2 ? 1 : 0,
-          3: reviewData.rating === 3 ? 1 : 0,
-          4: reviewData.rating === 4 ? 1 : 0,
-          5: reviewData.rating === 5 ? 1 : 0,
+        magazine: {
+          label: "Magazine",
+          color: "text-pink-700",
+          bg: "bg-pink-100",
         },
-      });
+        newspaper: {
+          label: "Newspaper",
+          color: "text-green-700",
+          bg: "bg-green-100",
+        },
+      };
+    return (
+      types[type] || { label: type, color: "text-gray-700", bg: "bg-gray-100" }
+    );
+  };
+
+  const handleQuantityChange = (newQuantity: number) => {
+    if (article) {
+      if (newQuantity < 1) return;
+      if (newQuantity > article.stock_quantity) {
+        showError(`Only ${article.stock_quantity} items available`);
+        return;
+      }
+      setQuantity(newQuantity);
     }
   };
 
   const handleAddToCart = () => {
-    if (!product) {
-      toast.error("Product not found");
-      return;
-    }
+    if (!article) return;
 
-    if (!product.in_stock || product.stock_quantity === 0) {
-      toast.error("This product is out of stock");
-      return;
-    }
+    setAddingToCart(true);
 
-    const imageUrl = getImageUrl(product.cover_image_url);
+    const existingCartItem = getCartItem(article.id);
 
-    const cartItem = {
-      id: product.id,
-      title: product.title,
-      author: product.author,
-      price: product.price,
-      currency: product.currency || "INR",
-      quantity: quantity,
-      cover_image_url: imageUrl,
-    };
+    let success = false;
 
-    const existingCart = localStorage.getItem("checkoutCart");
-    let cartItems = [];
-
-    if (existingCart) {
-      cartItems = JSON.parse(existingCart);
-      const existingItemIndex = cartItems.findIndex(
-        (item: any) => item.id === product.id,
-      );
-
-      if (existingItemIndex !== -1) {
-        cartItems[existingItemIndex].quantity += quantity;
-      } else {
-        cartItems.push(cartItem);
-      }
+    if (existingCartItem) {
+      success = updateCartItemQuantity(article.id, quantity);
     } else {
-      cartItems = [cartItem];
+      success = addToCart(
+        {
+          id: article.id,
+          title: article.title,
+          author: article.author,
+          price: article.price,
+          currency: article.currency,
+          cover_image_url: article.cover_image_url,
+          stock_quantity: article.stock_quantity,
+          in_stock: article.in_stock,
+        },
+        quantity,
+      );
     }
 
-    localStorage.setItem("checkoutCart", JSON.stringify(cartItems));
-    navigate("/checkout", { state: { cartItems } });
+    setAddingToCart(false);
 
-    toast.success(
-      `${quantity} ${quantity === 1 ? "copy" : "copies"} added to cart!`,
-    );
-  };
-
-  const handleQuantityChange = (delta: number) => {
-    if (product) {
-      setQuantity(
-        Math.max(1, Math.min(product.stock_quantity, quantity + delta)),
+    if (success) {
+      showSuccess(
+        <div className="flex items-center justify-between gap-4">
+          <span>
+            Added {quantity} x {article.title} to cart
+          </span>
+          <button
+            onClick={() => navigate("/checkout")}
+            className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+          >
+            View Cart
+          </button>
+        </div>,
       );
     }
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    try {
-      await navigator.share({ title: product?.title, url });
-    } catch {
-      navigator.clipboard.writeText(url);
-      toast.success("Link copied to clipboard!");
-    }
+  const getImageUrl = (url: string | null): string | undefined => {
+    if (!url) return undefined;
+    if (url.startsWith("http")) return url;
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:4000";
+    return `${baseUrl}${url}`;
   };
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8" />
-            <div className="grid md:grid-cols-2 gap-12">
-              <div className="aspect-[3/4] bg-gray-200 rounded-xl" />
-              <div className="space-y-4">
-                <div className="h-8 bg-gray-200 rounded w-3/4" />
-                <div className="h-4 bg-gray-200 rounded w-1/2" />
-                <div className="h-24 bg-gray-200 rounded" />
-                <div className="h-12 bg-gray-200 rounded" />
-              </div>
-            </div>
-          </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (error || !product) {
+  if (!article) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="flex-1 max-w-7xl mx-auto px-6 py-5">
-          <Button
-            onClick={() => navigate("/")}
-            className="inline-flex items-center gap-2 hover:bg-gray-100 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
-
-          <div className="text-center py-16">
-            <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              Product Not Found
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Product not found
             </h2>
-            <p className="text-gray-600 mb-6">
-              {error ||
-                "The publication you're looking for doesn't exist or has been removed."}
+            <p className="text-gray-500 mb-6">
+              The article you're looking for doesn't exist.
             </p>
             <Button
               onClick={() => navigate("/")}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700"
             >
               Back to Home
             </Button>
@@ -673,397 +223,223 @@ export const ProductDetail = () => {
     );
   }
 
-  const imageUrl = getImageUrl(product.cover_image_url);
-  const isInStock = product.in_stock && product.stock_quantity > 0;
+  const typeInfo = getTypeBadge(article.type);
+  const imageUrl = getImageUrl(article.cover_image_url);
+  const isInCartFlag = isInCart(article.id);
+  const cartItem = getCartItem(article.id);
 
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-6 py-5">
-        {/* Back Button */}
-        <Button
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-gray-600 hover:bg-gray-100 hover:text-black mb-6 transition-colors"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Back
-        </Button>
+        </button>
 
-        <div className="flex flex-col md:flex-row justify-between gap-12 mb-16">
-          <div className="w-auto md:w-96">
-            <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-lg">
-              {imageUrl && !imageError ? (
+        <div className="flex flex-col md:flex-row justify-between gap-12 mb-8 h-[500px]">
+          <div className="w-full md:w-80">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              {imageUrl ? (
                 <img
                   src={imageUrl}
-                  alt={product.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                  onError={() => setImageError(true)}
+                  alt={article.title}
+                  className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "";
+                  }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <BookOpen className="h-32 w-32 text-gray-400" />
+                <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                  <BookOpen className="h-24 w-24 text-gray-400" />
                 </div>
               )}
             </div>
           </div>
 
-          <div className="space-y-6 w-auto md:w-[60%]">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap mb-3">
-                <span
-                  className={`inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full ${
-                    product.type === "book"
-                      ? "bg-purple-100 text-purple-700"
-                      : product.type === "journal"
-                        ? "bg-blue-100 text-blue-700"
-                        : product.type === "magazine"
-                          ? "bg-pink-100 text-pink-700"
-                          : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {product.type}
+          <div className="space-y-6 p-5 w-auto md:w-[70%] overflow-scroll [scrollbar-width:none]">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${typeInfo.bg} ${typeInfo.color}`}
+              >
+                {typeInfo.label}
+              </span>
+              {article.featured && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
+                  <Star className="h-4 w-4 fill-yellow-500" />
+                  Featured
                 </span>
-                {product.featured && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">
-                    <Star className="h-3 w-3 fill-current" />
-                    Featured
-                  </span>
-                )}
-              </div>
-
-              <h1 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                {product.title}
-              </h1>
-
-              <p className="text-gray-600 flex items-center gap-2 mb-4">
-                <User className="h-5 w-5" />
-                by {product.author}
-              </p>
-
-              {reviewStats && reviewStats.total_reviews > 0 && (
-                <div className="flex items-center gap-4 mb-4">
-                  <StarRating
-                    rating={reviewStats.average_rating}
-                    size="lg"
-                    showNumber
-                  />
-                  <span className="text-sm text-gray-500">
-                    {reviewStats.total_reviews}{" "}
-                    {reviewStats.total_reviews === 1 ? "review" : "reviews"}
-                  </span>
-                  <Button
-                    onClick={() => setActiveTab("reviews")}
-                    className="text-sm hover:underline"
-                  >
-                    Read all reviews
-                  </Button>
-                </div>
               )}
-
-              {product.description && (
-                <p className="text-gray-600 leading-relaxed">
-                  {product.description}
-                </p>
+              {!article.in_stock || article.stock_quantity === 0 ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
+                  Out of Stock
+                </span>
+              ) : (
+                article.stock_quantity < 10 && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-700">
+                    Only {article.stock_quantity} left
+                  </span>
+                )
               )}
             </div>
 
-            <div className="border-t border-b border-gray-200 py-6">
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl font-bold text-gray-900">
-                  ₹{product.price.toLocaleString()}
-                </span>
-                {isInStock && (
-                  <span className="text-green-600 text-sm font-medium">
-                    In Stock
+            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 font-serif">
+              {article.title}
+            </h1>
+
+            <p className="text-lg text-gray-600 flex items-center gap-2">
+              <User className="h-5 w-5" />
+              by {article.author}
+            </p>
+
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-blue-600">
+                {article.currency === "INR"
+                  ? "₹"
+                  : article.currency === "USD"
+                    ? "$"
+                    : "€"}
+                {article.price.toLocaleString()}
+              </span>
+              {article.currency === "INR" && (
+                <span className="text-gray-500">+ Free Shipping</span>
+              )}
+            </div>
+
+            <div className="bg-gray-50 rounded-lg py-4">
+              <div className="flex items-center gap-8">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-gray-500" />
+                  <span className="text-gray-700">Availability:</span>
+                </div>
+                {article.in_stock && article.stock_quantity > 0 ? (
+                  <span className="text-green-600 font-medium">
+                    In Stock ({article.stock_quantity} units available)
                   </span>
+                ) : (
+                  <span className="text-red-600 font-medium">Out of Stock</span>
                 )}
               </div>
+            </div>
 
-              {isInStock ? (
-                <div className="flex items-center gap-4">
+            {article.in_stock && article.stock_quantity > 0 && (
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Quantity
+                </label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="flex items-center border border-gray-300 rounded-lg">
                     <button
-                      onClick={() => handleQuantityChange(-1)}
-                      className="px-3 py-2 hover:bg-gray-100 transition-colors"
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                      className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
-                    <span className="px-4 py-2 border-x border-gray-300 min-w-[60px] text-center">
+                    <span className="w-12 text-center font-medium">
                       {quantity}
                     </span>
                     <button
-                      onClick={() => handleQuantityChange(1)}
-                      className="px-3 py-2 hover:bg-gray-100 transition-colors"
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={quantity >= article.stock_quantity}
+                      className="p-2 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
                   <Button
                     onClick={handleAddToCart}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                    disabled={addingToCart || !article.in_stock}
+                    className="bg-blue-600 hover:bg-blue-700 gap-2"
                   >
-                    <ShoppingCart className="h-5 w-5" />
-                    Add to Cart
+                    {addingToCart ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    ) : isInCartFlag ? (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Update Cart ({quantity})
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="h-4 w-4" />
+                        Add to Cart ({quantity})
+                      </>
+                    )}
                   </Button>
-                </div>
-              ) : (
-                <div className="text-red-600 bg-red-50 p-3 rounded-lg">
-                  Out of Stock - This item is currently unavailable
-                </div>
-              )}
-            </div>
-
-            {/* Login to track orders prompt */}
-            {!customerUser && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <LogIn className="h-5 w-5 text-blue-600" />
-                  <div className="flex-1">
-                    <p className="text-sm text-blue-800">
-                      <Link
-                        to="/customer/login"
-                        className="font-medium underline"
-                      >
-                        Login
-                      </Link>{" "}
-                      to track your orders and save your purchase history
-                    </p>
-                  </div>
                 </div>
               </div>
             )}
 
-            <div className="flex gap-4">
-              <Button className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Heart className="h-5 w-5" />
-                Save for Later
-              </Button>
-              <Button
-                onClick={handleShare}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Share2 className="h-5 w-5" />
-                Share
-              </Button>
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              {product.publisher && (
-                <p className="text-sm">
-                  <span className="font-medium text-gray-700">Publisher:</span>{" "}
-                  {product.publisher}
-                </p>
-              )}
-              {product.published_year && (
-                <p className="text-sm">
-                  <span className="font-medium text-gray-700">Published:</span>{" "}
-                  {product.published_year}
-                </p>
-              )}
-              {product.language && (
-                <p className="text-sm">
-                  <span className="font-medium text-gray-700">Language:</span>{" "}
-                  {product.language}
-                </p>
-              )}
-              {product.isbn && (
-                <p className="text-sm">
-                  <span className="font-medium text-gray-700">ISBN:</span>{" "}
-                  {product.isbn}
-                </p>
-              )}
-              {product.page_count && (
-                <p className="text-sm">
-                  <span className="font-medium text-gray-700">Pages:</span>{" "}
-                  {product.page_count}
-                </p>
-              )}
-              <p className="text-sm flex items-center gap-1">
-                <Package className="h-4 w-4" />
-                <span className="font-medium text-gray-700">
-                  Available Stock:
-                </span>{" "}
-                {product.stock_quantity} copies
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 pt-4">
-              <div className="text-center">
-                <Truck className="h-6 w-6 text-gray-500 mx-auto mb-2" />
-                <p className="text-xs text-gray-600">Free Shipping</p>
-                <p className="text-xs text-gray-400">on orders above ₹500</p>
-              </div>
-              <div className="text-center">
-                <RotateCcw className="h-6 w-6 text-gray-500 mx-auto mb-2" />
-                <p className="text-xs text-gray-600">7-Day Returns</p>
-                <p className="text-xs text-gray-400">Easy replacement</p>
-              </div>
-              <div className="text-center">
-                <Shield className="h-6 w-6 text-gray-500 mx-auto mb-2" />
-                <p className="text-xs text-gray-600">Secure Payment</p>
-                <p className="text-xs text-gray-400">100% protected</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-b border-gray-200 mb-8">
-          <div className="flex gap-8">
-            <button
-              onClick={() => setActiveTab("details")}
-              className={`pb-4 px-1 font-medium transition-colors relative ${
-                activeTab === "details"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Product Details
-            </button>
-            <button
-              onClick={() => setActiveTab("reviews")}
-              className={`pb-4 px-1 font-medium transition-colors relative flex items-center gap-2 ${
-                activeTab === "reviews"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <MessageCircle className="h-4 w-4" />
-              Reviews ({reviewStats?.total_reviews || 0})
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-16">
-          {activeTab === "details" && (
-            <div className="bg-white rounded-xl p-6">
-              <h2 className="text-2xl font-serif text-gray-900 mb-4">
-                Description
-              </h2>
-              <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {product.description || "No description available."}
+            {article.description && (
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Description
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {article.description}
                 </p>
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === "reviews" && (
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-1">
-                <div className="bg-gray-50 p-6 rounded-xl sticky top-8">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                    Review Summary
-                  </h3>
-                  {reviewStats && reviewStats.total_reviews > 0 ? (
-                    <>
-                      <div className="text-center mb-6">
-                        <div className="text-5xl font-bold text-gray-900 mb-2">
-                          {reviewStats.average_rating.toFixed(1)}
-                        </div>
-                        <StarRating
-                          rating={reviewStats.average_rating}
-                          size="lg"
-                        />
-                        <p className="text-sm text-gray-500 mt-2">
-                          Based on {reviewStats.total_reviews}{" "}
-                          {reviewStats.total_reviews === 1
-                            ? "review"
-                            : "reviews"}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        {[5, 4, 3, 2, 1].map((star) => {
-                          const count =
-                            reviewStats.rating_distribution[
-                              star as keyof typeof reviewStats.rating_distribution
-                            ] || 0;
-                          const percentage =
-                            (count / reviewStats.total_reviews) * 100;
-                          return (
-                            <div key={star} className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600 w-8">
-                                {star} ★
-                              </span>
-                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-yellow-400 rounded-full"
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
-                              <span className="text-sm text-gray-500 w-12">
-                                {count}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-8">
-                      <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-600">No reviews yet</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Be the first to review this product
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="lg:col-span-2">
-                <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Write a Review
-                  </h3>
-                  <ReviewForm
-                    onSubmit={handleSubmitReview}
-                    productId={product.id}
-                  />
-                </div>
-
-                {reviews.length > 0 ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Customer Reviews
-                      </h3>
-                    </div>
-                    {reviews.map((review) => (
-                      <ReviewCard key={review.id} review={review} />
-                    ))}
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Product Details
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {article.isbn && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Hash className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">ISBN:</span>
+                    <span className="text-gray-900 font-mono">
+                      {article.isbn}
+                    </span>
                   </div>
-                ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl">
-                    <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">No reviews yet</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Be the first to share your thoughts!
-                    </p>
+                )}
+                {article.published_year && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Published:</span>
+                    <span className="text-gray-900">
+                      {article.published_year}
+                    </span>
+                  </div>
+                )}
+                {article.page_count && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Printer className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Pages:</span>
+                    <span className="text-gray-900">{article.page_count}</span>
+                  </div>
+                )}
+                {article.language && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Globe className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Language:</span>
+                    <span className="text-gray-900">{article.language}</span>
+                  </div>
+                )}
+                {article.publisher && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <CreditCard className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Publisher:</span>
+                    <span className="text-gray-900">{article.publisher}</span>
+                  </div>
+                )}
+                {article.category && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <BookOpen className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Category:</span>
+                    <span className="text-gray-900">{article.category}</span>
                   </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
-
-        {relatedProducts.length > 0 && (
-          <div>
-            <h2 className="font-serif text-2xl text-gray-900 mb-6">
-              You May Also Like
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {relatedProducts.slice(0, 4).map((related) => (
-                <RelatedArticleCard
-                  key={related.id}
-                  article={related}
-                  onClick={() => navigate(`/product/${related.id}`)}
-                />
-              ))}
-            </div>
           </div>
-        )}
+        </div>
       </main>
 
       <Footer />

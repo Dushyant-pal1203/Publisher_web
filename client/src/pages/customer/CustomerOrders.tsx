@@ -15,7 +15,9 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  ShoppingCart,
 } from "lucide-react";
+import { Button } from "@/components/common/Button";
 
 interface CustomerOrder {
   id: number;
@@ -52,6 +54,25 @@ export const CustomerOrders = () => {
   useEffect(() => {
     filterOrders();
   }, [orders, statusFilter, searchTerm]);
+
+  // Add this after the existing useEffects in CustomerOrders.tsx
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
+
+  // Also add a refetch function that can be called from storage events
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (user) {
+        fetchOrders();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [user]);
 
   const fetchOrders = async () => {
     try {
@@ -192,10 +213,10 @@ export const CustomerOrders = () => {
       {/* Stats Summary */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
         {Object.entries(statusCounts).map(([key, count]) => (
-          <button
+          <Button
             key={key}
             onClick={() => setStatusFilter(key)}
-            className={`p-3 rounded-lg text-center transition ${
+            className={`gap-2 p-3 rounded-lg text-center transition ${
               statusFilter === key
                 ? "bg-blue-600 text-white"
                 : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
@@ -205,7 +226,7 @@ export const CustomerOrders = () => {
             <p className="text-xs capitalize">
               {key === "all" ? "Total" : key}
             </p>
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -256,7 +277,7 @@ export const CustomerOrders = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         </div>
       ) : paginatedOrders.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center justify-items-center">
           <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             No orders found
@@ -266,12 +287,12 @@ export const CustomerOrders = () => {
               ? `You don't have any ${statusFilter} orders.`
               : "You haven't placed any orders yet."}
           </p>
-          <Link
-            to="/catalogue"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Start Shopping
-          </Link>
+          <Button className="gap-2">
+            <Link to="/catalogue" className="flex gap-2 items-center">
+              <ShoppingCart className="h-4 w-4" />
+              Start Shopping
+            </Link>
+          </Button>
         </div>
       ) : (
         <>

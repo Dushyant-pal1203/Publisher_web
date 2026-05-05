@@ -123,6 +123,12 @@ export const customerOrderAPI = {
     customerApi.get(`/orders/${id}`),
   trackOrder: (id: number): Promise<ApiResponse> =>
     customerApi.get(`/orders/${id}/track`),
+  // Add createOrder method
+  createOrder: (data: any): Promise<ApiResponse> =>
+    customerApi.post("/orders", data),
+  // Add sync order method
+  syncOrder: (data: any): Promise<ApiResponse> =>
+    customerApi.post("/sync-order", data),
 };
 
 export default customerApi;

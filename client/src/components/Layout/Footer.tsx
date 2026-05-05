@@ -26,7 +26,19 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 py-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-white font-semibold mb-4">About Us</h3>
+            <div className="flex items-center mb-4 gap-2">
+              <a href="/" className="flex">
+                <img
+                  src="/images/ph-logo.png"
+                  alt="Logo"
+                  className="h-12 w-12 rounded-full shadow hover:shadow-lg hover:shadow-cyan-600 transition"
+                  onError={(e) => {
+                    e.currentTarget.src = "https://via.placeholder.com/48";
+                  }}
+                />
+              </a>
+              <h3 className="text-white font-semibold">About Us</h3>
+            </div>
             <p className="text-sm">
               {settings.about ||
                 "We publish quality academic journals, literary works, and cultural publications that inspire and educate readers worldwide."}
@@ -64,12 +76,12 @@ export const Footer = () => {
             <ul className="space-y-2 text-sm">
               {/* Email */}
               {settings.contact_email && settings.contact_email !== "" && (
-                <li className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 flex-shrink-0" />
+                <li>
                   <a
                     href={`mailto:${settings.contact_email}`}
-                    className="hover:text-white transition"
+                    className="hover:text-white transition flex items-center space-x-2 gap-2"
                   >
+                    <Mail className="h-4 w-4 flex-shrink-0" />
                     {settings.contact_email}
                   </a>
                 </li>
@@ -77,12 +89,12 @@ export const Footer = () => {
 
               {/* Phone/WhatsApp Number */}
               {settings.whatsapp_number && settings.whatsapp_number !== "" && (
-                <li className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 flex-shrink-0" />
+                <li>
                   <a
                     href={`tel:${settings.whatsapp_number}`}
-                    className="hover:text-white transition"
+                    className="hover:text-white transition flex items-center space-x-2 gap-2"
                   >
+                    <Phone className="h-4 w-4 flex-shrink-0" />
                     {settings.whatsapp_number}
                   </a>
                 </li>
@@ -90,9 +102,11 @@ export const Footer = () => {
 
               {/* Address */}
               {settings.contact_address && settings.contact_address !== "" && (
-                <li className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4 flex-shrink-0" />
-                  <span>{settings.contact_address}</span>
+                <li>
+                  <div className="flex items-center space-x-2 gap-2">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    {settings.contact_address}
+                  </div>
                 </li>
               )}
 

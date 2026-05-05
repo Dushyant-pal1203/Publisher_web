@@ -47,7 +47,7 @@ export const CustomerLogin = () => {
             <img
               src="/images/ph-logo.png"
               alt="Logo"
-              className="h-20 w-20 rounded-full shadow mx-auto mb-4"
+              className="h-20 w-20 rounded-full shadow hover:shadow-lg hover:shadow-cyan-600 transition mx-auto mb-4"
             />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Customer Login</h1>
@@ -57,7 +57,7 @@ export const CustomerLogin = () => {
         </div>
 
         <div className="flex gap-2 mb-6">
-          <button
+          <Button
             onClick={() => setMethod("email")}
             className={`flex-1 py-2 rounded-lg font-medium transition ${
               method === "email"
@@ -67,8 +67,8 @@ export const CustomerLogin = () => {
           >
             <Mail className="h-4 w-4 inline mr-2" />
             Email
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setMethod("phone")}
             className={`flex-1 py-2 rounded-lg font-medium transition ${
               method === "phone"
@@ -78,7 +78,7 @@ export const CustomerLogin = () => {
           >
             <Phone className="h-4 w-4 inline mr-2" />
             Phone (OTP)
-          </button>
+          </Button>
         </div>
 
         {method === "email" ? (

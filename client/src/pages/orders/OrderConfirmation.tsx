@@ -1,4 +1,3 @@
-// client/src/pages/OrderConfirmation.tsx
 import { useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/Layout/Header";
@@ -14,44 +13,82 @@ import {
   Package,
 } from "lucide-react";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useToast } from "@/context/ToastContext";
 
 export const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user: customerUser } = useCustomerAuth();
+  const { showError } = useToast();
   const { orderData, savedOrders } = location.state || {};
 
   useEffect(() => {
+    // If no order data in state, try to get from localStorage
     if (!orderData) {
-      navigate("/");
+      const lastOrder = localStorage.getItem("lastPlacedOrder");
+      if (lastOrder) {
+        try {
+          const parsedOrder = JSON.parse(lastOrder);
+          // We have order data, but we can't update state directly
+          // Just don't redirect
+          console.log("Found last order in localStorage:", parsedOrder);
+        } catch (e) {
+          console.error("Failed to parse last order:", e);
+          showError("No order data found");
+          navigate("/");
+        }
+      } else {
+        showError("No order data found");
+        navigate("/");
+      }
     }
-  }, [orderData, navigate]);
+  }, [orderData, navigate, showError]);
 
-  // Get order ID from savedOrders or from localStorage
+  // Get order data from state or localStorage
+  const getOrderData = () => {
+    if (orderData) return orderData;
+
+    const lastOrder = localStorage.getItem("lastPlacedOrder");
+    if (lastOrder) {
+      try {
+        return JSON.parse(lastOrder);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
+
   const getOrderId = () => {
     if (savedOrders?.[0]?.id) {
       return `#${savedOrders[0].id}`;
     }
-    // Check if we have a pending order in localStorage
-    const pendingOrder = localStorage.getItem("pendingOrder");
-    if (pendingOrder) {
-      const parsed = JSON.parse(pendingOrder);
-      return parsed.orderId || "Processing...";
+    if (location.state?.orderId) {
+      return `#${location.state.orderId}`;
+    }
+    const lastOrder = localStorage.getItem("lastPlacedOrder");
+    if (lastOrder) {
+      try {
+        const parsed = JSON.parse(lastOrder);
+        return parsed.orderId || "Processing...";
+      } catch (e) {
+        return "Processing...";
+      }
     }
     return "Processing...";
   };
 
   const handleMyOrdersClick = () => {
     if (customerUser) {
-      // Logged in customer - go to customer orders page
       navigate("/customer/orders");
     } else {
-      // Guest user - go to guest orders page
       navigate("/orders");
     }
   };
 
-  if (!orderData) {
+  const finalOrderData = getOrderData();
+
+  if (!finalOrderData) {
     return null;
   }
 
@@ -59,8 +96,8 @@ export const OrderConfirmation = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
-      <main className="flex-1 max-w-7xl mx-auto px-2 py-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-10">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -143,13 +180,13 @@ export const OrderConfirmation = () => {
               <div className="flex justify-between">
                 <span className="text-gray-500">Total Amount:</span>
                 <span className="font-bold text-gray-900">
-                  ₹{orderData.total.toLocaleString()}
+                  ₹{finalOrderData.total?.toLocaleString() || 0}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Payment Method:</span>
                 <span className="text-gray-900">
-                  {orderData.paymentMethod === "whatsapp"
+                  {finalOrderData.paymentMethod === "whatsapp"
                     ? "WhatsApp Order"
                     : "Bank Transfer/UPI"}
                 </span>
@@ -157,7 +194,7 @@ export const OrderConfirmation = () => {
               <div className="flex justify-between">
                 <span className="text-gray-500">Delivery Address:</span>
                 <span className="text-gray-900 text-right max-w-[60%]">
-                  {orderData.customer.address}
+                  {finalOrderData.customer?.address}
                 </span>
               </div>
             </div>
@@ -170,7 +207,7 @@ export const OrderConfirmation = () => {
               Items Ordered
             </h3>
             <div className="space-y-2">
-              {orderData.items?.map((item: any, index: number) => (
+              {finalOrderData.items?.map((item: any, index: number) => (
                 <div key={index} className="flex justify-between text-sm">
                   <span className="text-gray-600">
                     {item.quantity}x {item.title}
@@ -192,10 +229,10 @@ export const OrderConfirmation = () => {
               <li>• You will receive a confirmation message shortly</li>
               <li>• Our team will contact you within 24 hours</li>
               <li>• Order will be processed after payment confirmation</li>
-              {orderData.paymentMethod === "whatsapp" && (
+              {finalOrderData.paymentMethod === "whatsapp" && (
                 <li>• Check WhatsApp for payment details</li>
               )}
-              {orderData.paymentMethod === "bank_transfer" && (
+              {finalOrderData.paymentMethod === "bank_transfer" && (
                 <li>• Bank details will be shared via SMS/Email</li>
               )}
             </ul>
@@ -211,7 +248,8 @@ export const OrderConfirmation = () => {
             </Button>
             <Button
               onClick={handleMyOrdersClick}
-              className="gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-black"
+              variant="secondary"
+              className="gap-2 px-4 py-2"
             >
               <ShoppingBag className="h-4 w-4" />
               {customerUser ? "My Orders" : "Guest Orders"}

@@ -5,7 +5,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 import { Home } from "@/pages/Home";
 import { Catalogue } from "@/pages/Catalogue";
 import { About } from "@/pages/About";
@@ -26,10 +25,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { Checkout } from "@/pages/payment/Checkout";
+import { Cart } from "@/pages/Cart";
 import { Orders } from "@/pages/orders/Orders";
 import { OrderConfirmation } from "./pages/orders/OrderConfirmation";
+import { CartProvider } from "@/context/CartContext";
+import { ToastProvider } from "@/context/ToastContext";
 
-// Admin Protected Route - checks for admin user
 const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
@@ -41,7 +42,6 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Only redirect if not admin user
   if (!user) {
     return <Navigate to="/admin/login" />;
   }
@@ -49,7 +49,6 @@ const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Customer Protected Route - checks for customer user
 const ProtectedCustomerRoute = ({
   children,
 }: {
@@ -67,7 +66,6 @@ const ProtectedCustomerRoute = ({
 
   console.log("Customer auth check - user:", user);
 
-  // Only redirect if not customer user
   if (!user) {
     console.log("No customer user, redirecting to login");
     return <Navigate to="/customer/login" />;
@@ -78,58 +76,56 @@ const ProtectedCustomerRoute = ({
 
 function App() {
   return (
-    <Router>
-      <ScrollToTop />
-      <Toaster position="top-right" />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/catalogue" element={<Catalogue />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/order-confirmation" element={<OrderConfirmation />} />
-        <Route path="/orders" element={<Orders />} />
+    <ToastProvider>
+      <CartProvider>
+        <Router>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/catalogue" element={<Catalogue />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/order-confirmation" element={<OrderConfirmation />} />
+            <Route path="/orders" element={<Orders />} />
 
-        {/* Customer Auth Routes (public) */}
-        <Route path="/customer/login" element={<CustomerLogin />} />
-        <Route path="/customer/signup" element={<CustomerSignup />} />
+            <Route path="/customer/login" element={<CustomerLogin />} />
+            <Route path="/customer/signup" element={<CustomerSignup />} />
 
-        {/* Customer Protected Routes */}
-        <Route
-          path="/customer"
-          element={
-            <ProtectedCustomerRoute>
-              <CustomerLayout />
-            </ProtectedCustomerRoute>
-          }
-        >
-          {/* <Route index element={<Navigate to="/customer/dashboard" />} /> */}
-          <Route path="dashboard" element={<CustomerDashboard />} />
-          <Route path="profile" element={<CustomerProfile />} />
-          <Route path="orders" element={<CustomerOrders />} />
-        </Route>
+            <Route
+              path="/customer"
+              element={
+                <ProtectedCustomerRoute>
+                  <CustomerLayout />
+                </ProtectedCustomerRoute>
+              }
+            >
+              <Route path="dashboard" element={<CustomerDashboard />} />
+              <Route path="profile" element={<CustomerProfile />} />
+              <Route path="orders" element={<CustomerOrders />} />
+            </Route>
 
-        {/* Admin Auth Routes (public) */}
-        <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* Admin Protected Routes */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedAdminRoute>
-              <AdminLayout />
-            </ProtectedAdminRoute>
-          }
-        >
-          <Route index element={<Navigate to="/admin/dashboard" />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="articles" element={<AdminArticles />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="settings" element={<AdminSettings />} />
-        </Route>
-      </Routes>
-    </Router>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminLayout />
+                </ProtectedAdminRoute>
+              }
+            >
+              <Route index element={<Navigate to="/admin/dashboard" />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="articles" element={<AdminArticles />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
+          </Routes>
+        </Router>
+      </CartProvider>
+    </ToastProvider>
   );
 }
 

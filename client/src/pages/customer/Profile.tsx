@@ -179,7 +179,7 @@ export const CustomerProfile = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
         <p className="text-gray-500 mt-1">Manage your account information</p>
@@ -187,11 +187,11 @@ export const CustomerProfile = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Profile Header with Avatar */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-900 px-6 py-8">
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-8">
           <div className="flex items-center gap-6">
             {/* Avatar Section */}
             <div className="relative group">
-              <div className="h-24 w-24 rounded-full bg-white/20 flex items-center justify-center backdrop-blur overflow-hidden">
+              <div className="h-24 w-24 border-2 border-gray-50 rounded-full bg-white/20 flex items-center justify-center backdrop-blur overflow-hidden">
                 {user?.profile_image_url ? (
                   <img
                     src={user.profile_image_url}

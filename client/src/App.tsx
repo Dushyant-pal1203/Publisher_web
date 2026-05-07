@@ -21,6 +21,7 @@ import { CustomerDashboard } from "@/pages/customer/CustomerDashboard";
 import { CustomerProfile } from "@/pages/customer/Profile";
 import { CustomerOrders } from "@/pages/customer/CustomerOrders";
 import { CustomerLayout } from "@/components/Layout/CustomerLayout";
+import { CustomerOrderTracking } from "@/pages/customer/CustomerOrderTracking";
 import { useAuth } from "@/hooks/useAuth";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -104,6 +105,7 @@ function App() {
               <Route path="dashboard" element={<CustomerDashboard />} />
               <Route path="profile" element={<CustomerProfile />} />
               <Route path="orders" element={<CustomerOrders />} />
+              <Route path="orders/:id" element={<CustomerOrderTracking />} />
             </Route>
 
             <Route path="/admin/login" element={<AdminLogin />} />

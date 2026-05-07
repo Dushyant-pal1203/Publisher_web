@@ -320,25 +320,47 @@ router.post("/login-otp", async (req, res) => {
 
     // Check if user exists
     let userResult = await pool.query(
-      `SELECT id, email, first_name, last_name, phone_number, profile_image_url 
+      `SELECT id, email, first_name, last_name, phone_number, profile_image_url, password, created_at
        FROM users WHERE phone_number = $1`,
       [phone_number],
     );
 
     let isNewUser = false;
+    const defaultPassword = "123456";
 
-    // If user doesn't exist, create new account
+    // If user doesn't exist, create new account with default password
     if (userResult.rows.length === 0) {
       console.log("Creating new user for phone:", phone_number);
       const firstName = `User_${phone_number.slice(-4)}`;
 
+      // Hash the default password
+      const hashedDefaultPassword = await bcrypt.hash(defaultPassword, 10);
+
       userResult = await pool.query(
-        `INSERT INTO users (phone_number, first_name, last_name, created_at, updated_at) 
-         VALUES ($1, $2, $3, NOW(), NOW()) 
-         RETURNING id, email, first_name, last_name, phone_number, profile_image_url`,
-        [phone_number, firstName, ""],
+        `INSERT INTO users (phone_number, first_name, last_name, password, created_at, updated_at) 
+         VALUES ($1, $2, $3, $4, NOW(), NOW()) 
+         RETURNING id, email, first_name, last_name, phone_number, profile_image_url, password, created_at`,
+        [phone_number, firstName, "", hashedDefaultPassword],
       );
       isNewUser = true;
+    } else {
+      // If user exists but doesn't have a password (from old registration), set default password
+      const user = userResult.rows[0];
+      if (!user.password) {
+        console.log(
+          "Existing user without password, setting default password for phone:",
+          phone_number,
+        );
+        const hashedDefaultPassword = await bcrypt.hash(defaultPassword, 10);
+
+        await pool.query(
+          "UPDATE users SET password = $1, updated_at = NOW() WHERE id = $2",
+          [hashedDefaultPassword, user.id],
+        );
+
+        // Update the user result to include the new password info
+        userResult.rows[0].password = hashedDefaultPassword;
+      }
     }
 
     const user = userResult.rows[0];
@@ -359,17 +381,16 @@ router.post("/login-otp", async (req, res) => {
       );
       console.log("Session saved. customerId:", req.session.customerId);
 
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+
       res.json({
         success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          phone_number: user.phone_number,
-          profile_image_url: user.profile_image_url,
-        },
+        user: userWithoutPassword,
         isNewUser,
+        // Optional: Add flag to indicate if user needs to change default password
+        needsPasswordChange:
+          isNewUser || !userResult.rows[0].password_changed_at,
       });
     });
   } catch (error) {

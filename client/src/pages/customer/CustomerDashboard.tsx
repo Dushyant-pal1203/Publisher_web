@@ -16,6 +16,7 @@ import {
   Calendar,
   ShoppingCart,
   Plus,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 
@@ -29,11 +30,23 @@ interface CustomerOrder {
   created_at: string;
   tracking_number?: string;
   estimated_delivery?: string;
+  _isLocal?: boolean;
+}
+
+interface LocalOrder {
+  orderId: string;
+  items: any[];
+  total: number;
+  customer: any;
+  orderDate: string;
+  status: string;
+  databaseId?: number;
 }
 
 export const CustomerDashboard = () => {
   const { user, loading: authLoading } = useCustomerAuth();
   const [recentOrders, setRecentOrders] = useState<CustomerOrder[]>([]);
+  const [localOrderCount, setLocalOrderCount] = useState(0);
   const [stats, setStats] = useState({
     totalOrders: 0,
     deliveredOrders: 0,
@@ -45,42 +58,81 @@ export const CustomerDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchCustomerData();
+      loadLocalOrders();
     }
   }, [user]);
+
+  const loadLocalOrders = () => {
+    if (!user) return;
+
+    const userPhone = user.phone_number;
+    const userEmail = user.email?.toLowerCase();
+    let matchedCount = 0;
+
+    const savedOrders = localStorage.getItem("userOrders");
+    if (savedOrders) {
+      try {
+        const orders: LocalOrder[] = JSON.parse(savedOrders);
+        const matched = orders.filter((order) => {
+          const orderPhone = order.customer?.phone;
+          const orderEmail = order.customer?.email?.toLowerCase();
+          return (
+            (orderPhone && userPhone && orderPhone === userPhone) ||
+            (orderEmail && userEmail && orderEmail === userEmail)
+          );
+        });
+        matchedCount = matched.length;
+      } catch (error) {
+        console.error("Failed to parse local orders:", error);
+      }
+    }
+
+    setLocalOrderCount(matchedCount);
+  };
 
   const fetchCustomerData = async () => {
     try {
       setLoading(true);
       const response = await customerOrderAPI.getMyOrders();
       const orders = response.data.orders || [];
-      setRecentOrders(orders.slice(0, 5));
+
+      // Convert orders to consistent format
+      const formattedOrders: CustomerOrder[] = orders.map((order: any) => ({
+        id: order.id,
+        article_title: order.article_title,
+        article_author: order.article_author,
+        quantity: order.quantity,
+        total_amount:
+          typeof order.total_amount === "string"
+            ? parseFloat(order.total_amount)
+            : order.total_amount,
+        status: order.status,
+        created_at: order.created_at,
+        tracking_number: order.tracking_number,
+        estimated_delivery: order.estimated_delivery,
+      }));
+
+      setRecentOrders(formattedOrders.slice(0, 5));
 
       // Calculate stats
-      const delivered = orders.filter(
+      const delivered = formattedOrders.filter(
         (o: CustomerOrder) => o.status === "delivered",
       );
-      const pending = orders.filter((o: CustomerOrder) =>
+      const pending = formattedOrders.filter((o: CustomerOrder) =>
         ["pending", "processing", "shipped"].includes(o.status),
       );
 
-      // FIXED: Calculate total spent from delivered orders with proper number conversion
       const totalSpent = delivered.reduce((sum: number, o: CustomerOrder) => {
-        // Convert to number if it's a string
         let amount =
           typeof o.total_amount === "string"
             ? parseFloat(o.total_amount as unknown as string)
             : Number(o.total_amount);
-
-        // Handle invalid numbers
-        if (isNaN(amount)) {
-          amount = 0;
-        }
-
+        if (isNaN(amount)) amount = 0;
         return sum + amount;
       }, 0);
 
       setStats({
-        totalOrders: orders.length,
+        totalOrders: formattedOrders.length,
         deliveredOrders: delivered.length,
         pendingOrders: pending.length,
         totalSpent: totalSpent,
@@ -114,8 +166,6 @@ export const CustomerDashboard = () => {
       case "shipped":
         return <Truck className="h-4 w-4" />;
       case "processing":
-        return <Package className="h-4 w-4" />;
-      case "cancelled":
         return <Package className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -171,6 +221,27 @@ export const CustomerDashboard = () => {
         </div>
       </div>
 
+      {/* Guest Orders Alert */}
+      {localOrderCount > 0 && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">
+                You have {localOrderCount} guest order
+                {localOrderCount !== 1 ? "s" : ""}
+              </p>
+              <p className="text-xs text-blue-600">
+                <Link to="/customer/orders" className="underline font-medium">
+                  Click here
+                </Link>{" "}
+                to view and sync your guest orders to your account
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 hover:scale-105">
@@ -181,8 +252,13 @@ export const CustomerDashboard = () => {
             <div>
               <p className="text-sm text-gray-500">Total Orders</p>
               <p className="text-2xl font-bold text-gray-900">
-                {stats.totalOrders}
+                {stats.totalOrders + localOrderCount}
               </p>
+              {localOrderCount > 0 && (
+                <p className="text-xs text-blue-600">
+                  +{localOrderCount} guest orders
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -251,7 +327,7 @@ export const CustomerDashboard = () => {
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : recentOrders.length === 0 ? (
+        ) : recentOrders.length === 0 && localOrderCount === 0 ? (
           <div className="p-12 text-center justify-items-center">
             <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No orders yet</p>
@@ -264,7 +340,7 @@ export const CustomerDashboard = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {recentOrders.map((order) => (
+            {recentOrders.slice(0, 5).map((order) => (
               <div key={order.id} className="p-6 hover:bg-gray-50 transition">
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -289,10 +365,7 @@ export const CustomerDashboard = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-gray-900">
-                      ₹
-                      {typeof order.total_amount === "number"
-                        ? order.total_amount.toLocaleString()
-                        : order.total_amount}
+                      ₹{order.total_amount.toLocaleString()}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       Qty: {order.quantity}
@@ -317,6 +390,16 @@ export const CustomerDashboard = () => {
                 </div>
               </div>
             ))}
+            {localOrderCount > 0 && recentOrders.length === 0 && (
+              <div className="p-6 text-center">
+                <p className="text-gray-500">
+                  You have {localOrderCount} guest order(s).
+                  <Link to="/customer/orders" className="text-blue-600 ml-1">
+                    Click here to view them
+                  </Link>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

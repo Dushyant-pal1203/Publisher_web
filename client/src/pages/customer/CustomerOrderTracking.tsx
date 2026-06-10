@@ -20,6 +20,7 @@ import {
   ShoppingBag,
   MessageCircle,
   CreditCard,
+  PackagePlus,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useToast } from "@/context/ToastContext";
@@ -31,7 +32,13 @@ interface OrderDetails {
   article_author: string;
   quantity: number;
   total_amount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   payment_method: string;
   customer_name: string;
   customer_email?: string;
@@ -43,7 +50,6 @@ interface OrderDetails {
   notes?: string;
 }
 
-// Local order type for guest orders
 interface LocalOrderDetails {
   orderId: string;
   items: any[];
@@ -62,7 +68,6 @@ interface LocalOrderDetails {
   estimatedDelivery?: string;
 }
 
-// Type guard functions
 const isOrderDetails = (
   order: OrderDetails | LocalOrderDetails,
 ): order is OrderDetails => {
@@ -86,6 +91,7 @@ export const CustomerOrderTracking = () => {
   const [loading, setLoading] = useState(true);
   const [isLocalOrder, setIsLocalOrder] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [apiAttempted, setApiAttempted] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -95,46 +101,72 @@ export const CustomerOrderTracking = () => {
 
   const loadOrderDetails = async () => {
     setLoading(true);
-    try {
-      // First try to get from database if user is logged in
-      if (user && id) {
-        try {
-          const response = await customerOrderAPI.getOrderDetails(Number(id));
-          if (response.data?.order) {
-            setOrder(response.data.order);
-            setIsLocalOrder(false);
-            setLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.log(
-            "Order not found in database, checking localStorage:",
-            error,
-          );
-        }
-      }
+    setApiAttempted(false);
 
-      // If not found in database, try localStorage
+    try {
+      console.log("Loading order details for ID:", id);
+      console.log("User logged in:", !!user);
+
+      // FIRST: Always check localStorage immediately for instant display
       if (id) {
         const localOrder = findLocalOrder(id);
         if (localOrder) {
+          console.log("Found order in localStorage, displaying immediately");
           setOrder(localOrder);
           setIsLocalOrder(true);
-        } else {
-          showError("Order not found");
-          navigate("/customer/orders");
+          setLoading(false); // Show the order immediately
+        }
+      }
+
+      // THEN: Try to fetch from API if user is logged in
+      if (user && id) {
+        setApiAttempted(true);
+        try {
+          console.log("Fetching from API for order ID:", id);
+          const response = await customerOrderAPI.getOrderDetails(Number(id));
+          console.log("API Response:", response);
+
+          if (response.data?.order) {
+            console.log("Order found in database:", response.data.order);
+            // Update with database version (has better data)
+            setOrder(response.data.order);
+            setIsLocalOrder(false);
+          } else {
+            console.log("No order data in API response");
+          }
+        } catch (error: any) {
+          console.log(
+            "API fetch failed:",
+            error.response?.status,
+            error.response?.data,
+          );
+          // If we already have a local order, keep it and don't show error
+          if (!order) {
+            console.log("No local order found and API failed");
+            showError(
+              "Order not found in database. Displaying local copy if available.",
+            );
+          } else {
+            console.log("Keeping local order display despite API failure");
+            // Show a subtle warning but keep the order visible
+            showError("Unable to sync with server, showing saved order data");
+          }
         }
       }
     } catch (error) {
       console.error("Failed to load order:", error);
-      showError("Failed to load order details");
+      if (!order) {
+        showError("Failed to load order details");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const findLocalOrder = (orderId: string): LocalOrderDetails | null => {
-    // Check main userOrders
+    // Try to find order in various storage locations
+
+    // 1. Check userOrders
     const savedOrders = localStorage.getItem("userOrders");
     if (savedOrders) {
       try {
@@ -144,13 +176,39 @@ export const CustomerOrderTracking = () => {
             o.orderId === orderId ||
             o.orderId === `#${orderId}` ||
             o.id === parseInt(orderId) ||
-            o.databaseId === parseInt(orderId),
+            o.databaseId === parseInt(orderId) ||
+            o.orderId?.toString() === orderId,
         );
-        if (found) return found;
-      } catch (e) {}
+        if (found) {
+          console.log("Found in userOrders");
+          return found;
+        }
+      } catch (e) {
+        console.error("Error parsing userOrders:", e);
+      }
     }
 
-    // Check user-specific storage if user is logged in
+    // 2. Check recentOrders
+    const recentOrders = localStorage.getItem("recentOrders");
+    if (recentOrders) {
+      try {
+        const orders = JSON.parse(recentOrders);
+        const found = orders.find(
+          (o: any) =>
+            o.orderId === orderId ||
+            o.orderId === `#${orderId}` ||
+            o.id === parseInt(orderId),
+        );
+        if (found) {
+          console.log("Found in recentOrders");
+          return found;
+        }
+      } catch (e) {
+        console.error("Error parsing recentOrders:", e);
+      }
+    }
+
+    // 3. Check user-specific storage
     if (user?.id) {
       const userOrdersKey = `user_orders_${user.id}`;
       const userOrders = localStorage.getItem(userOrdersKey);
@@ -161,13 +219,34 @@ export const CustomerOrderTracking = () => {
             (o: any) =>
               o.orderId === orderId ||
               o.orderId === `#${orderId}` ||
-              o.id === parseInt(orderId),
+              o.id === parseInt(orderId) ||
+              o.orderId?.toString() === orderId,
           );
-          if (found) return found;
-        } catch (e) {}
+          if (found) {
+            console.log("Found in user-specific storage");
+            return found;
+          }
+        } catch (e) {
+          console.error(`Error parsing ${userOrdersKey}:`, e);
+        }
       }
     }
 
+    // 4. Check for order created in current session
+    const pendingOrder = localStorage.getItem("pendingOrder");
+    if (pendingOrder) {
+      try {
+        const order = JSON.parse(pendingOrder);
+        if (order.orderId === orderId || order.orderId === `#${orderId}`) {
+          console.log("Found in pendingOrder");
+          return order;
+        }
+      } catch (e) {
+        console.error("Error parsing pendingOrder:", e);
+      }
+    }
+
+    console.log("Order not found in any localStorage location");
     return null;
   };
 
@@ -181,6 +260,8 @@ export const CustomerOrderTracking = () => {
         return <Package className="h-12 w-12 text-blue-600" />;
       case "cancelled":
         return <XCircle className="h-12 w-12 text-red-600" />;
+      case "confirmed":
+        return <PackagePlus className="h-12 w-12 text-emerald-600" />;
       default:
         return <Clock className="h-12 w-12 text-yellow-600" />;
     }
@@ -190,6 +271,7 @@ export const CustomerOrderTracking = () => {
     const statusMap: Record<string, string> = {
       pending: "Pending Confirmation",
       processing: "Processing",
+      confirmed: "Confirmed",
       shipped: "Shipped",
       delivered: "Delivered",
       cancelled: "Cancelled",
@@ -207,13 +289,21 @@ export const CustomerOrderTracking = () => {
         return "bg-blue-100 text-blue-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
+      case "confirmed":
+        return "bg-emerald-100 text-emerald-800";
       default:
         return "bg-yellow-100 text-yellow-800";
     }
   };
 
   const getStatusStep = (status: string) => {
-    const steps = ["pending", "processing", "shipped", "delivered"];
+    const steps = [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+    ];
     const currentIndex = steps.indexOf(status);
     return currentIndex === -1 ? -1 : currentIndex;
   };
@@ -232,7 +322,9 @@ export const CustomerOrderTracking = () => {
     setRefreshing(true);
     await loadOrderDetails();
     setRefreshing(false);
-    showSuccess("Order status updated!");
+    if (order) {
+      showSuccess("Order status updated!");
+    }
   };
 
   const handleContactSupport = () => {
@@ -248,7 +340,7 @@ export const CustomerOrderTracking = () => {
     );
   };
 
-  // Helper functions to safely access order properties
+  // Helper functions
   const getOrderId = () => {
     if (!order) return "";
     return isOrderDetails(order) ? order.id : order.orderId;
@@ -331,7 +423,8 @@ export const CustomerOrderTracking = () => {
     }
   };
 
-  if (loading) {
+  // If still loading and no order yet, show spinner
+  if (loading && !order) {
     return (
       <div className="flex justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -339,26 +432,46 @@ export const CustomerOrderTracking = () => {
     );
   }
 
-  if (!order) {
+  // Only show "not found" if loading is complete AND no order exists
+  if (!loading && !order) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-12 max-w-2xl mx-auto">
         <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           Order Not Found
         </h2>
-        <p className="text-gray-500 mb-6">
-          The order you're looking for doesn't exist.
+        <p className="text-gray-500 mb-4">
+          We couldn't find order #{id} in our records.
         </p>
-        <Link
-          to="/customer/orders"
-          className="text-blue-600 hover:text-blue-700"
-        >
-          Back to Orders →
-        </Link>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-left">
+          <p className="text-sm text-yellow-800 mb-2">
+            <strong>Possible reasons:</strong>
+          </p>
+          <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
+            <li>You're not logged in to the account that placed this order</li>
+            <li>The order ID might be incorrect</li>
+            <li>
+              The order was placed as a guest and not saved to your account
+            </li>
+            <li>The order hasn't been synced to the database yet</li>
+          </ul>
+        </div>
+        <div className="flex gap-4 justify-center">
+          <Link
+            to="/customer/orders"
+            className="text-blue-600 hover:text-blue-700"
+          >
+            View My Orders →
+          </Link>
+          <Link to="/catalogue" className="text-gray-600 hover:text-gray-700">
+            Continue Shopping →
+          </Link>
+        </div>
       </div>
     );
   }
 
+  // Order exists - render the page
   const orderStatus = getStatus();
   const orderItems = getOrderItems();
 
@@ -395,7 +508,12 @@ export const CustomerOrderTracking = () => {
             </button>
             {isLocalOrder && (
               <span className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-orange-100 text-orange-700">
-                Guest Order
+                Guest Order (Local)
+              </span>
+            )}
+            {apiAttempted && isLocalOrder && (
+              <span className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-yellow-100 text-yellow-700">
+                Not Synced
               </span>
             )}
           </div>
@@ -415,11 +533,13 @@ export const CustomerOrderTracking = () => {
                 ? "Your order has been delivered successfully!"
                 : orderStatus === "shipped"
                   ? "Your order is on the way!"
-                  : orderStatus === "processing"
-                    ? "We're preparing your order"
-                    : orderStatus === "cancelled"
-                      ? "This order has been cancelled"
-                      : "We've received your order and are processing it"}
+                  : orderStatus === "confirmed"
+                    ? "Your order has been confirmed and will be processed soon!"
+                    : orderStatus === "processing"
+                      ? "We're preparing your order"
+                      : orderStatus === "cancelled"
+                        ? "This order has been cancelled"
+                        : "We've received your order and are processing it"}
             </p>
           </div>
         </div>
@@ -431,11 +551,16 @@ export const CustomerOrderTracking = () => {
               <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200"></div>
               <div
                 className="absolute top-5 left-0 h-0.5 bg-blue-600 transition-all duration-500"
-                style={{ width: `${(getStatusStep(orderStatus) / 3) * 100}%` }}
+                style={{ width: `${(getStatusStep(orderStatus) / 4) * 100}%` }}
               ></div>
               <div className="relative flex justify-between">
                 {[
                   { label: "Order Placed", status: "pending", icon: Clock },
+                  {
+                    label: "Confirmed",
+                    status: "confirmed",
+                    icon: PackagePlus,
+                  },
                   { label: "Processing", status: "processing", icon: Package },
                   { label: "Shipped", status: "shipped", icon: Truck },
                   {
@@ -574,7 +699,7 @@ export const CustomerOrderTracking = () => {
                       ₹
                       {(
                         item.price ||
-                        (isOrderDetails(order)
+                        (order && isOrderDetails(order)
                           ? order.total_amount / order.quantity
                           : 0)
                       ).toLocaleString()}
@@ -583,7 +708,7 @@ export const CustomerOrderTracking = () => {
                       ₹
                       {(
                         (item.price ||
-                          (isOrderDetails(order)
+                          (order && isOrderDetails(order)
                             ? order.total_amount / order.quantity
                             : 0)) * item.quantity
                       ).toLocaleString()}
@@ -619,7 +744,7 @@ export const CustomerOrderTracking = () => {
           </div>
         )}
 
-        {/* Tracking Information (if shipped) */}
+        {/* Tracking Information */}
         {getTrackingNumber() && orderStatus === "shipped" && (
           <div className="md:col-span-2 bg-blue-50 rounded-xl p-6 border border-blue-200">
             <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">

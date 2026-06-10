@@ -162,6 +162,7 @@ router.patch("/:id/status", requireAuth, async (req, res) => {
     const { status } = req.body;
     const validStatuses = [
       "pending",
+      "confirmed", // ✅ ADD THIS
       "processing",
       "shipped",
       "delivered",
@@ -213,6 +214,7 @@ router.get("/stats/summary", requireAuth, async (req, res) => {
       SELECT 
         COUNT(*) as total_orders,
         COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
+        COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_orders,
         COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_orders,
         COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_orders,
         COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,

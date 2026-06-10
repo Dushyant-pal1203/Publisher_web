@@ -29,6 +29,7 @@ export const AdminOrders = () => {
         >
           <option value="">All Status</option>
           <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option> {/* ✅ ADD THIS */}
           <option value="processing">Processing</option>
           <option value="shipped">Shipped</option>
           <option value="delivered">Delivered</option>
@@ -105,6 +106,7 @@ export const AdminOrders = () => {
                         className="px-2 py-1 border border-gray-300 rounded text-sm"
                       >
                         <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
                         <option value="processing">Processing</option>
                         <option value="shipped">Shipped</option>
                         <option value="delivered">Delivered</option>

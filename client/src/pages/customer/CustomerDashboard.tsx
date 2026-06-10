@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Plus,
   AlertCircle,
+  PackagePlus,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 
@@ -26,7 +27,13 @@ interface CustomerOrder {
   article_author: string;
   quantity: number;
   total_amount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"; // ✅ ADD confirmed
   created_at: string;
   tracking_number?: string;
   estimated_delivery?: string;
@@ -118,8 +125,9 @@ export const CustomerDashboard = () => {
       const delivered = formattedOrders.filter(
         (o: CustomerOrder) => o.status === "delivered",
       );
-      const pending = formattedOrders.filter((o: CustomerOrder) =>
-        ["pending", "processing", "shipped"].includes(o.status),
+      const pending = formattedOrders.filter(
+        (o: CustomerOrder) =>
+          ["pending", "confirmed", "processing", "shipped"].includes(o.status), // ✅ ADD confirmed here
       );
 
       const totalSpent = delivered.reduce((sum: number, o: CustomerOrder) => {
@@ -150,6 +158,8 @@ export const CustomerDashboard = () => {
         return "bg-green-100 text-green-700";
       case "shipped":
         return "bg-purple-100 text-purple-700";
+      case "confirmed":
+        return "bg-emerald-100 text-emerald-800";
       case "processing":
         return "bg-blue-100 text-blue-700";
       case "cancelled":
@@ -165,6 +175,8 @@ export const CustomerDashboard = () => {
         return <CheckCircle className="h-4 w-4" />;
       case "shipped":
         return <Truck className="h-4 w-4" />;
+      case "confirmed":
+        return <PackagePlus className="h-4 w-4" />;
       case "processing":
         return <Package className="h-4 w-4" />;
       default:

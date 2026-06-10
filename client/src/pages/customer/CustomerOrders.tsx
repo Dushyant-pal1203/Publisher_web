@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShoppingCart,
+  PackagePlus,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 
@@ -26,7 +27,13 @@ interface CustomerOrder {
   article_author: string;
   quantity: number;
   total_amount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   payment_method: string;
   customer_address: string;
   created_at: string;
@@ -127,6 +134,8 @@ export const CustomerOrders = () => {
         return <Package className="h-5 w-5 text-blue-600" />;
       case "cancelled":
         return <XCircle className="h-5 w-5 text-red-600" />;
+      case "confirmed":
+        return <PackagePlus className="h-4 w-4" />;
       default:
         return <Clock className="h-5 w-5 text-yellow-600" />;
     }
@@ -142,6 +151,8 @@ export const CustomerOrders = () => {
         return "bg-blue-100 text-blue-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
+      case "confirmed":
+        return "bg-emerald-100 text-emerald-800";
       default:
         return "bg-yellow-100 text-yellow-800";
     }
@@ -150,6 +161,7 @@ export const CustomerOrders = () => {
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
       pending: "Pending",
+      confirmed: "Confirmed",
       processing: "Processing",
       shipped: "Shipped",
       delivered: "Delivered",
@@ -168,6 +180,7 @@ export const CustomerOrders = () => {
   const statusCounts = {
     all: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
+    confirmed: orders.filter((o) => o.status === "confirmed").length,
     processing: orders.filter((o) => o.status === "processing").length,
     shipped: orders.filter((o) => o.status === "shipped").length,
     delivered: orders.filter((o) => o.status === "delivered").length,
@@ -211,7 +224,7 @@ export const CustomerOrders = () => {
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mb-6">
         {Object.entries(statusCounts).map(([key, count]) => (
           <Button
             key={key}
@@ -251,6 +264,7 @@ export const CustomerOrders = () => {
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
               <option value="processing">Processing</option>
               <option value="shipped">Shipped</option>
               <option value="delivered">Delivered</option>

@@ -9,7 +9,13 @@ export interface Order {
   customer_phone: string;
   customer_address: string;
   payment_method: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   total_amount: number;
   currency: string;
   notes?: string;

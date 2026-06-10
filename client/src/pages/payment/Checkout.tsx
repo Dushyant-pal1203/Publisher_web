@@ -3,10 +3,11 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Layout/Header";
 import { Footer } from "@/components/Layout/Footer";
 import { Button } from "@/components/common/Button";
-import { orderAPI, articleAPI, customerOrderAPI } from "@/lib/api";
+import { orderAPI, articleAPI } from "@/lib/api";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
+import { useSettings } from "@/hooks/useSettings";
 import {
   ArrowLeft,
   CreditCard,
@@ -21,6 +22,12 @@ import {
   Minus,
   Plus,
   Trash2,
+  Copy,
+  Check,
+  X,
+  QrCode,
+  Building2,
+  Smartphone,
 } from "lucide-react";
 
 type OrderFormData = {
@@ -36,10 +43,14 @@ export const Checkout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user: customerUser, loading: authLoading } = useCustomerAuth();
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } =
-    useCart();
+  const { cartItems, removeFromCart, updateQuantity, clearCart } = useCart();
   const { showSuccess, showError } = useToast();
+  const { settings, loading: settingsLoading } = useSettings();
   const [loading, setLoading] = useState(false);
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [completedOrderData, setCompletedOrderData] = useState<any>(null);
+  const [savedOrderTotal, setSavedOrderTotal] = useState(0);
+  const [savedOrderItems, setSavedOrderItems] = useState<any[]>([]);
   const [formData, setFormData] = useState<OrderFormData>({
     fullName: "",
     phoneNumber: "",
@@ -49,6 +60,20 @@ export const Checkout = () => {
     paymentMethod: "whatsapp",
   });
   const [errors, setErrors] = useState<Partial<OrderFormData>>({});
+
+  // Manual fallback payment details (will show if settings are empty)
+  const MANUAL_PAYMENT_DETAILS = {
+    upi_id: "9716551203@pz",
+    bank_name: "State Bank of India",
+    account_name: "Publishing House",
+    account_number: "1234567890123456",
+    ifsc_code: "SBIN0012345",
+    payment_instructions:
+      "Please send the payment screenshot to our WhatsApp number 9310004022 after payment.",
+    whatsapp_number: "9310004022",
+    // Add your QR code image path here
+    qr_code_url: "/images/payment/image.png",
+  };
 
   // Auto-fill form if customer is logged in
   useEffect(() => {
@@ -62,14 +87,6 @@ export const Checkout = () => {
       }));
     }
   }, [customerUser]);
-
-  // Redirect if cart is empty
-  useEffect(() => {
-    if (cartItems.length === 0 && !location.state?.cartItems) {
-      showError("Your cart is empty");
-      navigate("/");
-    }
-  }, [cartItems, location, navigate, showError]);
 
   const calculateTotal = () => {
     return cartItems.reduce(
@@ -119,199 +136,6 @@ export const Checkout = () => {
     setFormData((prev) => ({ ...prev, paymentMethod: method }));
   };
 
-  const saveOrderToDatabase = async (orderData: any) => {
-    try {
-      // Create order in database for each item
-      const orderPromises = cartItems.map(async (item) => {
-        const orderPayload = {
-          article_id: item.id,
-          article_title: item.title,
-          article_author: item.author,
-          quantity: item.quantity,
-          customer_name: orderData.customer.name,
-          customer_email: orderData.customer.email,
-          customer_phone: orderData.customer.phone,
-          customer_address: orderData.customer.address,
-          payment_method: orderData.paymentMethod,
-          total_amount: item.price * item.quantity,
-          currency: item.currency || "INR",
-          notes: orderData.notes,
-          status: "pending",
-        };
-
-        const response = await orderAPI.create(orderPayload);
-        return response.data?.order || response.data;
-      });
-
-      const savedOrders = await Promise.all(orderPromises);
-      return savedOrders;
-    } catch (error: any) {
-      console.error("Failed to save order to database:", error);
-      // Don't throw error - we still have local storage backup
-      return null;
-    }
-  };
-
-  const handleSubmitOrder = async () => {
-    if (!validateForm()) {
-      showError("Please fill in all required fields");
-      return;
-    }
-
-    // Final stock validation before order
-    for (const item of cartItems) {
-      if (item.quantity > item.stock_quantity) {
-        showError(
-          `${item.title} is only available in quantity ${item.stock_quantity}`,
-        );
-        return;
-      }
-    }
-
-    setLoading(true);
-
-    const orderData = {
-      items: cartItems,
-      total: calculateTotal(),
-      customer: {
-        name: formData.fullName,
-        phone: formData.phoneNumber,
-        email: formData.email || null,
-        address: formData.deliveryAddress,
-      },
-      notes: formData.orderNotes,
-      paymentMethod: formData.paymentMethod,
-      orderDate: new Date().toISOString(),
-      customerId: customerUser?.id || null,
-    };
-
-    // Generate order ID first (for localStorage)
-    const orderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    try {
-      // Try to update stock (but don't fail if it doesn't work)
-      try {
-        const stockUpdates = cartItems.map(async (item) => {
-          const newStockQuantity = Math.max(
-            0,
-            item.stock_quantity - item.quantity,
-          );
-          await articleAPI.update(item.id, {
-            stock_quantity: newStockQuantity,
-            in_stock: newStockQuantity > 0,
-          });
-        });
-        await Promise.all(stockUpdates);
-      } catch (stockError) {
-        console.error("Failed to update stock (non-critical):", stockError);
-        // Don't throw - continue with order
-      }
-
-      // Try to save to database (optional - don't fail if it doesn't work)
-      let savedOrders = null;
-      try {
-        const orderPromises = cartItems.map(async (item) => {
-          const orderPayload = {
-            article_id: item.id,
-            article_title: item.title,
-            article_author: item.author,
-            quantity: item.quantity,
-            customer_name: orderData.customer.name,
-            customer_email: orderData.customer.email,
-            customer_phone: orderData.customer.phone,
-            customer_address: orderData.customer.address,
-            payment_method: orderData.paymentMethod,
-            total_amount: item.price * item.quantity,
-            currency: item.currency || "INR",
-            notes: orderData.notes,
-            status: "pending",
-          };
-
-          const response = await orderAPI.create(orderPayload);
-          return response.data?.order || response.data;
-        });
-
-        savedOrders = await Promise.all(orderPromises);
-        console.log("Orders saved to database:", savedOrders);
-      } catch (dbError) {
-        console.error("Database save failed (non-critical):", dbError);
-        // Continue - order is saved in localStorage
-      }
-
-      // Save to localStorage (THIS IS THE PRIMARY STORAGE METHOD)
-      const newOrder = {
-        ...orderData,
-        orderId,
-        status: "pending",
-        databaseId: savedOrders?.[0]?.id || null,
-        orderDate: new Date().toISOString(),
-      };
-
-      // Save to main userOrders
-      const savedOrdersLocal = localStorage.getItem("userOrders");
-      const orders = savedOrdersLocal ? JSON.parse(savedOrdersLocal) : [];
-      orders.unshift(newOrder);
-      localStorage.setItem("userOrders", JSON.stringify(orders));
-
-      // If user is logged in, also store in user-specific storage
-      if (customerUser) {
-        const userOrdersKey = `user_orders_${customerUser.id}`;
-        const existingUserOrders = localStorage.getItem(userOrdersKey);
-        const userOrders = existingUserOrders
-          ? JSON.parse(existingUserOrders)
-          : [];
-        userOrders.unshift(newOrder);
-        localStorage.setItem(userOrdersKey, JSON.stringify(userOrders));
-
-        // Also store the order in the backend user_orders if possible
-        try {
-          // Optional: Sync with backend user orders
-          await customerOrderAPI?.syncOrder?.({
-            ...newOrder,
-            userId: customerUser.id,
-          });
-        } catch (syncError) {
-          console.error("Failed to sync order with backend:", syncError);
-        }
-      }
-
-      // Store as last placed order for confirmation page
-      localStorage.setItem("lastPlacedOrder", JSON.stringify(newOrder));
-
-      // Clear cart
-      clearCart();
-
-      // Handle WhatsApp redirect if needed
-      if (formData.paymentMethod === "whatsapp") {
-        const message = formatWhatsAppMessage(orderData);
-        const whatsappNumber =
-          import.meta.env.VITE_WHATSAPP_NUMBER || "919310004022";
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, "_blank");
-        showSuccess("Redirecting to WhatsApp to complete your order!");
-      } else {
-        showSuccess("Order placed successfully! We'll contact you shortly.");
-      }
-
-      // Navigate to order confirmation
-      setTimeout(() => {
-        navigate("/order-confirmation", {
-          state: {
-            orderData,
-            savedOrders,
-            orderId: savedOrders?.[0]?.id || orderId,
-          },
-          replace: true,
-        });
-      }, 1500);
-    } catch (error) {
-      console.error("Order submission failed:", error);
-      showError("Failed to place order. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const formatWhatsAppMessage = (order: any): string => {
     let message = `*NEW ORDER*\n\n`;
     message += `*Customer Details:*\n`;
@@ -331,9 +155,534 @@ export const Checkout = () => {
     return message;
   };
 
+  const saveOrderToStorage = async (orderData: any, orderId: string) => {
+    const newOrder = {
+      ...orderData,
+      orderId,
+      status: "pending_payment",
+      orderDate: new Date().toISOString(),
+    };
+
+    const savedOrdersLocal = localStorage.getItem("userOrders");
+    const orders = savedOrdersLocal ? JSON.parse(savedOrdersLocal) : [];
+    orders.unshift(newOrder);
+    localStorage.setItem("userOrders", JSON.stringify(orders));
+
+    if (customerUser) {
+      const userOrdersKey = `user_orders_${customerUser.id}`;
+      const existingUserOrders = localStorage.getItem(userOrdersKey);
+      const userOrders = existingUserOrders
+        ? JSON.parse(existingUserOrders)
+        : [];
+      userOrders.unshift(newOrder);
+      localStorage.setItem(userOrdersKey, JSON.stringify(userOrders));
+    }
+
+    localStorage.setItem("lastPlacedOrder", JSON.stringify(newOrder));
+
+    return newOrder;
+  };
+
+  const handleSubmitOrder = async () => {
+    if (!validateForm()) {
+      showError("Please fill in all required fields");
+      return;
+    }
+
+    for (const item of cartItems) {
+      if (item.quantity > item.stock_quantity) {
+        showError(
+          `${item.title} is only available in quantity ${item.stock_quantity}`,
+        );
+        return;
+      }
+    }
+
+    setLoading(true);
+
+    const total = calculateTotal();
+    const orderData = {
+      items: cartItems,
+      total: total,
+      customer: {
+        name: formData.fullName,
+        phone: formData.phoneNumber,
+        email: formData.email || null,
+        address: formData.deliveryAddress,
+      },
+      notes: formData.orderNotes,
+      paymentMethod: formData.paymentMethod,
+      orderDate: new Date().toISOString(),
+      customerId: customerUser?.id || null,
+    };
+
+    const orderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    try {
+      try {
+        const stockUpdates = cartItems.map(async (item) => {
+          const newStockQuantity = Math.max(
+            0,
+            item.stock_quantity - item.quantity,
+          );
+          await articleAPI.update(item.id, {
+            stock_quantity: newStockQuantity,
+            in_stock: newStockQuantity > 0,
+          });
+        });
+        await Promise.all(stockUpdates);
+      } catch (stockError) {
+        console.error("Failed to update stock:", stockError);
+      }
+
+      let savedOrders = null;
+      try {
+        const orderPromises = cartItems.map(async (item) => {
+          const orderPayload = {
+            article_id: item.id,
+            article_title: item.title,
+            article_author: item.author,
+            quantity: item.quantity,
+            customer_name: orderData.customer.name,
+            customer_email: orderData.customer.email,
+            customer_phone: orderData.customer.phone,
+            customer_address: orderData.customer.address,
+            payment_method: orderData.paymentMethod,
+            total_amount: item.price * item.quantity,
+            currency: item.currency || "INR",
+            notes: orderData.notes,
+            status: "pending_payment",
+          };
+          const response = await orderAPI.create(orderPayload);
+          return response.data?.order || response.data;
+        });
+        savedOrders = await Promise.all(orderPromises);
+      } catch (dbError) {
+        console.error("Database save failed:", dbError);
+      }
+
+      setSavedOrderTotal(total);
+      setSavedOrderItems([...cartItems]);
+      await saveOrderToStorage(orderData, orderId);
+      clearCart();
+
+      if (formData.paymentMethod === "whatsapp") {
+        const message = formatWhatsAppMessage(orderData);
+        const whatsappNumber =
+          settings?.whatsapp_number || MANUAL_PAYMENT_DETAILS.whatsapp_number;
+        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, "_blank");
+        showSuccess("Redirecting to WhatsApp to complete your order!");
+
+        setTimeout(() => {
+          navigate("/order-confirmation", {
+            state: {
+              orderData,
+              savedOrders,
+              orderId: savedOrders?.[0]?.id || orderId,
+            },
+            replace: true,
+          });
+        }, 1500);
+      } else {
+        setCompletedOrderData({
+          orderData,
+          savedOrders,
+          orderId: savedOrders?.[0]?.id || orderId,
+        });
+        setShowPaymentDetails(true);
+        setLoading(false);
+        showSuccess("Order created! Please complete the payment.");
+      }
+    } catch (error) {
+      console.error("Order submission failed:", error);
+      showError("Failed to place order. Please try again.");
+      setLoading(false);
+    }
+  };
+
   const total = calculateTotal();
 
-  if (authLoading) {
+  // Payment Details Modal Component
+  const PaymentDetailsModal = () => {
+    const [copiedField, setCopiedField] = useState<string>("");
+    const [showQR, setShowQR] = useState(true); // Changed to true to show QR by default
+    const [qrError, setQrError] = useState(false);
+
+    const copyToClipboard = (text: string, field: string) => {
+      navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(""), 2000);
+    };
+
+    const handleProceedToConfirmation = () => {
+      setShowPaymentDetails(false);
+      if (completedOrderData) {
+        navigate("/order-confirmation", {
+          state: {
+            orderData: completedOrderData.orderData,
+            savedOrders: completedOrderData.savedOrders,
+            orderId: completedOrderData.orderId,
+          },
+          replace: true,
+        });
+      } else {
+        const lastOrder = localStorage.getItem("lastPlacedOrder");
+        if (lastOrder) {
+          const parsedOrder = JSON.parse(lastOrder);
+          navigate("/order-confirmation", {
+            state: {
+              orderData: parsedOrder,
+              orderId: parsedOrder.orderId,
+            },
+            replace: true,
+          });
+        } else {
+          navigate("/");
+        }
+      }
+    };
+
+    const getOrderId = () => {
+      if (completedOrderData?.orderId) {
+        return completedOrderData.orderId;
+      }
+      const lastOrder = localStorage.getItem("lastPlacedOrder");
+      if (lastOrder) {
+        try {
+          const parsed = JSON.parse(lastOrder);
+          return parsed.orderId;
+        } catch (e) {
+          return "Processing...";
+        }
+      }
+      return "Processing...";
+    };
+
+    const orderId = getOrderId();
+
+    // Get payment details from settings or use manual fallback
+    const upiId =
+      settings?.upi_id && settings.upi_id.trim() !== ""
+        ? settings.upi_id
+        : MANUAL_PAYMENT_DETAILS.upi_id;
+    const whatsappNumber =
+      settings?.whatsapp_number && settings.whatsapp_number.trim() !== ""
+        ? settings.whatsapp_number
+        : MANUAL_PAYMENT_DETAILS.whatsapp_number;
+    const paymentInstructions =
+      settings?.payment_instructions &&
+      settings.payment_instructions.trim() !== ""
+        ? settings.payment_instructions
+        : MANUAL_PAYMENT_DETAILS.payment_instructions;
+
+    // QR Code image path - change this to your actual image path
+    const qrCodeUrl = MANUAL_PAYMENT_DETAILS.qr_code_url;
+
+    if (!showPaymentDetails) return null;
+
+    return (
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={() => setShowPaymentDetails(false)}
+      >
+        <div
+          className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-900">Payment Details</h2>
+            <button
+              onClick={() => setShowPaymentDetails(false)}
+              className="p-1 hover:bg-gray-100 rounded-full transition"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+
+          <div className="p-6">
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
+                <CreditCard className="h-6 w-6 text-blue-600" />
+              </div>
+              <p className="text-gray-600 text-sm mt-1">
+                Please complete your payment using the details below
+              </p>
+            </div>
+
+            {/* Order ID */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 text-sm">Order ID:</span>
+                <span className="text-sm font-mono font-bold text-blue-600">
+                  {orderId}
+                </span>
+              </div>
+            </div>
+
+            {/* Order Items Summary */}
+            {savedOrderItems.length > 0 && (
+              <div className="mb-4 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  Order Summary
+                </h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {savedOrderItems.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-gray-600">
+                        {item.quantity}x {item.title}
+                      </span>
+                      <span className="text-gray-900">
+                        ₹{(item.price * item.quantity).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-gray-200 mt-2 pt-2">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total</span>
+                    <span className="text-blue-600">
+                      ₹{savedOrderTotal.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Total Amount */}
+            <div className="bg-blue-50 rounded-lg p-4 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Total Amount to Pay:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  ₹{savedOrderTotal.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* UPI Payment Section with QR Code */}
+            <div className="mb-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Smartphone className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold text-gray-900">
+                  Scan & Pay with UPI
+                </h3>
+              </div>
+
+              {/* QR Code Image */}
+              <div className="flex flex-col items-center mb-4 p-4 bg-white rounded-lg">
+                <img
+                  src={qrCodeUrl}
+                  alt="UPI QR Code - Scan to Pay"
+                  className="w-48 h-48 mb-2 object-contain"
+                  onError={(e) => {
+                    console.error(
+                      "QR Code failed to load from path:",
+                      qrCodeUrl,
+                    );
+                    setQrError(true);
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+                {qrError && (
+                  <div className="text-center text-red-500 text-sm">
+                    <p>QR Code not found. Please use UPI ID below.</p>
+                  </div>
+                )}
+                <p className="text-sm font-medium text-gray-700 mt-2">
+                  Scan this QR code to pay ₹{savedOrderTotal.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Using any UPI app: Google Pay, PhonePe, Paytm, etc.
+                </p>
+              </div>
+
+              <div className="mt-2">
+                <div className="flex items-center justify-between bg-white p-3 rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 mb-1">
+                      UPI ID (Manual Entry)
+                    </p>
+                    <code className="text-sm font-mono break-all">{upiId}</code>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(upiId, "UPI ID")}
+                    className="ml-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition flex-shrink-0"
+                  >
+                    {copiedField === "UPI ID" ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Or copy UPI ID to pay manually from your banking app
+                </p>
+              </div>
+            </div>
+
+            {/* Bank Transfer Section */}
+            <div className="mb-4 border-2 border-green-200 rounded-lg p-4 bg-green-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Building2 className="h-5 w-5 text-green-600" />
+                <h3 className="font-semibold text-gray-900">
+                  Bank Transfer (NEFT/RTGS/IMPS)
+                </h3>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-white p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">
+                    Account Holder Name
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {MANUAL_PAYMENT_DETAILS.account_name}
+                    </span>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(
+                          MANUAL_PAYMENT_DETAILS.account_name,
+                          "Account Name",
+                        )
+                      }
+                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                    >
+                      {copiedField === "Account Name" ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Bank Name</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {MANUAL_PAYMENT_DETAILS.bank_name}
+                    </span>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(
+                          MANUAL_PAYMENT_DETAILS.bank_name,
+                          "Bank Name",
+                        )
+                      }
+                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                    >
+                      {copiedField === "Bank Name" ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Account Number</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-mono">
+                      {MANUAL_PAYMENT_DETAILS.account_number}
+                    </span>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(
+                          MANUAL_PAYMENT_DETAILS.account_number,
+                          "Account Number",
+                        )
+                      }
+                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                    >
+                      {copiedField === "Account Number" ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">IFSC Code</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-mono uppercase">
+                      {MANUAL_PAYMENT_DETAILS.ifsc_code}
+                    </span>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(
+                          MANUAL_PAYMENT_DETAILS.ifsc_code,
+                          "IFSC Code",
+                        )
+                      }
+                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                    >
+                      {copiedField === "IFSC Code" ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Instructions */}
+            <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-semibold text-yellow-800 mb-2">
+                📝 Payment Instructions
+              </h3>
+              <p className="text-sm text-yellow-700">{paymentInstructions}</p>
+              <ul className="text-xs text-yellow-700 mt-2 space-y-1 list-disc list-inside">
+                <li>After successful payment, please take a screenshot</li>
+                <li>
+                  Send the screenshot to WhatsApp number:{" "}
+                  <strong className="font-mono">{whatsappNumber}</strong>
+                </li>
+                <li>
+                  Include your Order ID:{" "}
+                  <strong className="font-mono">{orderId}</strong> in the
+                  message
+                </li>
+                <li>
+                  Your order will be confirmed within 2-4 hours after payment
+                  verification
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowPaymentDetails(false);
+                  navigate("/");
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProceedToConfirmation}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                View Order
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-4">
+              Your order will be confirmed after payment verification
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (authLoading || settingsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -341,7 +690,7 @@ export const Checkout = () => {
     );
   }
 
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 && !showPaymentDetails) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
@@ -771,6 +1120,9 @@ export const Checkout = () => {
       </main>
 
       <Footer />
+
+      {/* Payment Details Modal */}
+      <PaymentDetailsModal />
     </div>
   );
 };

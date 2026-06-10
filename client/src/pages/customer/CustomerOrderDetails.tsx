@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   Download,
   Printer,
+  PackagePlus,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import toast from "react-hot-toast";
@@ -34,7 +35,13 @@ interface OrderDetails {
   customer_phone: string;
   customer_address: string;
   payment_method: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   total_amount: number;
   currency: string;
   notes?: string;
@@ -80,6 +87,8 @@ export const CustomerOrderDetails = () => {
         return <Package className="h-8 w-8 text-blue-600" />;
       case "cancelled":
         return <XCircle className="h-8 w-8 text-red-600" />;
+      case "confirmed":
+        return <PackagePlus className="h-4 w-4" />;
       default:
         return <Clock className="h-8 w-8 text-yellow-600" />;
     }
@@ -89,6 +98,7 @@ export const CustomerOrderDetails = () => {
     const statusMap: Record<string, string> = {
       pending: "Pending Confirmation",
       processing: "Processing",
+      confirmed: "Confirmed",
       shipped: "Shipped",
       delivered: "Delivered",
       cancelled: "Cancelled",
@@ -106,13 +116,21 @@ export const CustomerOrderDetails = () => {
         return "bg-blue-100 text-blue-800";
       case "cancelled":
         return "bg-red-100 text-red-800";
+      case "confirmed":
+        return "bg-emerald-100 text-emerald-800";
       default:
         return "bg-yellow-100 text-yellow-800";
     }
   };
 
   const getStatusStep = (status: string) => {
-    const steps = ["pending", "processing", "shipped", "delivered"];
+    const steps = [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+    ];
     const currentIndex = steps.indexOf(status);
     return currentIndex;
   };
@@ -272,9 +290,11 @@ export const CustomerOrderDetails = () => {
                 ? "Your order has been delivered successfully!"
                 : order.status === "shipped"
                   ? "Your order is on the way!"
-                  : order.status === "pending"
-                    ? "We're processing your order"
-                    : "Order is being processed"}
+                  : order.status === "confirmed"
+                    ? "Your order has been confirmed and will be processed soon!"
+                    : order.status === "pending"
+                      ? "We're processing your order"
+                      : "Order is being processed"}
             </p>
           </div>
         </div>
@@ -285,17 +305,19 @@ export const CustomerOrderDetails = () => {
             <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-200"></div>
             <div
               className="absolute top-5 left-0 h-0.5 bg-blue-600 transition-all duration-500"
-              style={{ width: `${(getStatusStep(order.status) / 3) * 100}%` }}
+              style={{ width: `${(getStatusStep(order.status) / 4) * 100}%` }}
             ></div>
             <div className="relative flex justify-between">
               {[
                 { label: "Order Placed", status: "pending", icon: Clock },
+                { label: "Confirmed", status: "confirmed", icon: PackagePlus },
                 { label: "Processing", status: "processing", icon: Package },
                 { label: "Shipped", status: "shipped", icon: Truck },
                 { label: "Delivered", status: "delivered", icon: CheckCircle },
               ].map((step, index) => {
                 const stepIndex = [
                   "pending",
+                  "confirmed",
                   "processing",
                   "shipped",
                   "delivered",

@@ -70,7 +70,6 @@ CREATE TABLE IF NOT EXISTS settings (
   contact_address TEXT,
   currency TEXT DEFAULT 'INR' NOT NULL,
   upi_id TEXT,
-  bank_details TEXT,
   payment_instructions TEXT,
   created_at TIMESTAMP DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMP DEFAULT NOW() NOT NULL
@@ -148,7 +147,13 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Add password column to users table if not exists
+-- Add new payment columns to settings table if not exists
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS account_holder_name TEXT;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS account_number TEXT;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS ifsc_code TEXT;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS qr_code_url TEXT;
+
 -- Add password column to users table if not exists
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password VARCHAR(255);
 

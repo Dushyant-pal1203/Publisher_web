@@ -11,8 +11,13 @@ interface SettingsData {
   contact_address: string;
   currency: string;
   upi_id: string;
-  bank_details: string;
   payment_instructions: string;
+  // New payment fields
+  account_holder_name: string;
+  bank_name: string;
+  account_number: string;
+  ifsc_code: string;
+  qr_code_url: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -27,8 +32,12 @@ export const useSettings = () => {
     contact_address: "",
     currency: "INR",
     upi_id: "",
-    bank_details: "",
     payment_instructions: "",
+    account_holder_name: "",
+    bank_name: "",
+    account_number: "",
+    ifsc_code: "",
+    qr_code_url: "",
   });
   const [loading, setLoading] = useState(true);
 
@@ -59,12 +68,17 @@ export const useSettings = () => {
           settingsData.contact_address || settingsData.address || "",
         currency: settingsData.currency || "INR",
         upi_id: settingsData.upi_id || "",
-        bank_details: settingsData.bank_details || "",
         payment_instructions: settingsData.payment_instructions || "",
+        // New payment fields
+        account_holder_name: settingsData.account_holder_name || "",
+        bank_name: settingsData.bank_name || "",
+        account_number: settingsData.account_number || "",
+        ifsc_code: settingsData.ifsc_code || "",
+        qr_code_url: settingsData.qr_code_url || "",
       });
     } catch (error) {
-      // Optional: keep this if you want basic error visibility
-      //   console.error("Failed to load settings:", error);
+      // Silent fail - keep default values
+      console.error("Failed to load settings:", error);
     } finally {
       setLoading(false);
     }

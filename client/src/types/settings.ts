@@ -8,6 +8,11 @@ export interface Settings {
   contact_address?: string;
   currency: string;
   upi_id?: string;
-  bank_details?: string;
   payment_instructions?: string;
+  // New payment fields
+  account_holder_name?: string;
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  qr_code_url?: string;
 }

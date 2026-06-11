@@ -8,6 +8,10 @@ import {
 import { Home } from "@/pages/Home";
 import { Catalogue } from "@/pages/Catalogue";
 import { About } from "@/pages/About";
+import { ContactUs } from "@/pages/ContactUs";
+import { PrivacyPolicy } from "@/pages/PrivacyPolicy";
+import { TermsOfService } from "@/pages/TermsOfService";
+import { PaymentMethods } from "@/pages/PaymentMethods";
 import { ProductDetail } from "@/pages/products/ProductDetail";
 import { AdminLogin } from "@/pages/admin/Login";
 import { AdminDashboard } from "@/pages/admin/Dashboard";
@@ -86,6 +90,10 @@ function App() {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/catalogue" element={<Catalogue />} />
             <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/payment-methods" element={<PaymentMethods />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />

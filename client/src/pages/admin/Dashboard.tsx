@@ -1,10 +1,40 @@
+// client/src/pages/admin/Dashboard.tsx
 import { useDashboard } from "@/hooks/useDashboard";
 import { StatsCard } from "@/components/UI/StatsCard";
 import { StatusBadge } from "@/components/UI/StatusBadge";
-import { IndianRupee, ShoppingBag, Clock, BookOpen } from "lucide-react";
+import {
+  IndianRupee,
+  ShoppingBag,
+  Clock,
+  BookOpen,
+  Package,
+  TrendingUp,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { articleAPI, dashboardAPI } from "@/lib/api";
 
 export const AdminDashboard = () => {
   const { stats, loading } = useDashboard();
+  const navigate = useNavigate();
+  const [totalInventoryValue, setTotalInventoryValue] = useState(0);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+
+  // Fetch inventory value - FIXED calculation
+  useEffect(() => {
+    const fetchInventoryValue = async () => {
+      try {
+        const response = await dashboardAPI.getInventoryValue();
+        setTotalInventoryValue(response.data.totalValue);
+      } catch (error) {
+        console.error("Failed to fetch inventory value:", error);
+      } finally {
+        setInventoryLoading(false);
+      }
+    };
+
+    fetchInventoryValue();
+  }, []); // Remove stats dependency to avoid re-fetching
 
   if (loading) {
     return (
@@ -14,27 +44,74 @@ export const AdminDashboard = () => {
     );
   }
 
+  // Handle card clicks
+  const handleCardClick = (type: string) => {
+    switch (type) {
+      case "revenue":
+        navigate("/admin/orders?status=delivered");
+        break;
+      case "totalOrders":
+        navigate("/admin/orders");
+        break;
+      case "pendingOrders":
+        navigate("/admin/orders?status=pending");
+        break;
+      case "catalogueSize":
+        navigate("/admin/articles");
+        break;
+      case "inventoryValue":
+        navigate("/admin/articles");
+        break;
+      default:
+        break;
+    }
+  };
+
   const statsData = [
     {
       title: "Total Revenue",
-      value: `₹${stats?.totalRevenue || 0}`,
+      value: `₹${stats?.totalRevenue?.toLocaleString("en-IN") || 0}`,
       icon: <IndianRupee className="h-6 w-6" />,
+      trend: { value: 15, isPositive: true },
+      onClick: () => handleCardClick("revenue"),
+      description: "From delivered orders",
     },
     {
       title: "Total Orders",
       value: stats?.totalOrders || 0,
       icon: <ShoppingBag className="h-6 w-6" />,
+      onClick: () => handleCardClick("totalOrders"),
+      description: "All time orders",
     },
     {
       title: "Pending Orders",
       value: stats?.pendingOrders || 0,
       icon: <Clock className="h-6 w-6" />,
-      trend: { value: 12, isPositive: false },
+      trend: {
+        value: stats?.pendingOrders ?? 0,
+        isPositive: false,
+      },
+      onClick: () => handleCardClick("pendingOrders"),
+      description: "Awaiting processing",
     },
     {
       title: "Catalogue Size",
       value: stats?.catalogueSize || 0,
       icon: <BookOpen className="h-6 w-6" />,
+      onClick: () => handleCardClick("catalogueSize"),
+      description: "Total articles",
+    },
+    {
+      title: "Inventory Value",
+      value: inventoryLoading
+        ? "Loading..."
+        : `₹${totalInventoryValue.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+      icon: <Package className="h-6 w-6" />,
+      onClick: () => handleCardClick("inventoryValue"),
+      description: "Stock value (Price × Quantity)",
     },
   ];
 
@@ -42,16 +119,28 @@ export const AdminDashboard = () => {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {statsData.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
+          <div
+            key={index}
+            className="cursor-pointer transition-transform hover:scale-105"
+          >
+            <StatsCard {...stat} />
+          </div>
         ))}
       </div>
 
       {/* Recent Orders */}
       <div className="bg-white rounded-lg shadow mb-8">
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">Recent Orders</h2>
+          <button
+            onClick={() => navigate("/admin/orders")}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            View All →
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -77,7 +166,11 @@ export const AdminDashboard = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {stats?.recentOrders?.length ? (
                 stats.recentOrders.map((order: any) => (
-                  <tr key={order.id}>
+                  <tr
+                    key={order.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       #{order.id}
                     </td>
@@ -110,49 +203,139 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Catalogue Breakdown */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Catalogue Breakdown
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Count
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {stats?.catalogueBreakdown?.length ? (
-                stats.catalogueBreakdown.map((item: any, idx: number) => (
-                  <tr key={idx}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                      {item.type || "Uncategorized"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.count}
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Catalogue Breakdown */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Catalogue Breakdown
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Count
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Percentage
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {stats?.catalogueBreakdown?.length ? (
+                  stats.catalogueBreakdown.map((item: any, idx: number) => {
+                    const percentage = (
+                      (item.count / (stats?.catalogueSize || 1)) *
+                      100
+                    ).toFixed(1);
+                    return (
+                      <tr
+                        key={idx}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() =>
+                          navigate(`/admin/articles?type=${item.type}`)
+                        }
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                          {item.type || "Uncategorized"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {item.count}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 rounded-full"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-6 py-12 text-center text-gray-500"
+                    >
+                      Catalogue is empty.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    Catalogue is empty.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Monthly Revenue Chart */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Monthly Revenue Trend
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Last 6 months</p>
+          </div>
+          <div className="p-6">
+            {stats?.monthlyRevenue && stats.monthlyRevenue.length > 0 ? (
+              <div className="space-y-4">
+                {stats.monthlyRevenue.map((item: any, idx: number) => {
+                  const maxRevenue = Math.max(
+                    ...stats.monthlyRevenue.map(
+                      (m: any) => parseFloat(m.revenue) || 0,
+                    ),
+                  );
+                  const revenue = parseFloat(item.revenue) || 0;
+                  const percentage =
+                    maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
+                  return (
+                    <div key={idx} className="group">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">{item.month}</span>
+                        <span className="font-semibold text-gray-900">
+                          ₹{revenue.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                      <div className="w-full h-8 bg-gray-100 rounded-lg overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-lg transition-all duration-500 flex items-center px-3"
+                          style={{ width: `${percentage}%` }}
+                        >
+                          <span className="text-xs text-white font-medium">
+                            {percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No revenue data available
+              </div>
+            )}
+
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => navigate("/admin/orders?status=delivered")}
+                className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                View Detailed Reports →
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -25,9 +25,8 @@ import {
   Copy,
   Check,
   X,
-  QrCode,
-  Building2,
   Smartphone,
+  Building2,
 } from "lucide-react";
 
 type OrderFormData = {
@@ -51,6 +50,7 @@ export const Checkout = () => {
   const [completedOrderData, setCompletedOrderData] = useState<any>(null);
   const [savedOrderTotal, setSavedOrderTotal] = useState(0);
   const [savedOrderItems, setSavedOrderItems] = useState<any[]>([]);
+  const [qrError, setQrError] = useState(false);
   const [formData, setFormData] = useState<OrderFormData>({
     fullName: "",
     phoneNumber: "",
@@ -60,20 +60,6 @@ export const Checkout = () => {
     paymentMethod: "whatsapp",
   });
   const [errors, setErrors] = useState<Partial<OrderFormData>>({});
-
-  // Manual fallback payment details (will show if settings are empty)
-  const MANUAL_PAYMENT_DETAILS = {
-    upi_id: "9716551203@pz",
-    bank_name: "State Bank of India",
-    account_name: "Publishing House",
-    account_number: "1234567890123456",
-    ifsc_code: "SBIN0012345",
-    payment_instructions:
-      "Please send the payment screenshot to our WhatsApp number 9310004022 after payment.",
-    whatsapp_number: "9310004022",
-    // Add your QR code image path here
-    qr_code_url: "/images/payment/image.png",
-  };
 
   // Auto-fill form if customer is logged in
   useEffect(() => {
@@ -268,10 +254,11 @@ export const Checkout = () => {
 
       if (formData.paymentMethod === "whatsapp") {
         const message = formatWhatsAppMessage(orderData);
-        const whatsappNumber =
-          settings?.whatsapp_number || MANUAL_PAYMENT_DETAILS.whatsapp_number;
-        const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, "_blank");
+        const whatsappNumber = settings?.whatsapp_number;
+        if (whatsappNumber) {
+          const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+          window.open(whatsappUrl, "_blank");
+        }
         showSuccess("Redirecting to WhatsApp to complete your order!");
 
         setTimeout(() => {
@@ -306,8 +293,8 @@ export const Checkout = () => {
   // Payment Details Modal Component
   const PaymentDetailsModal = () => {
     const [copiedField, setCopiedField] = useState<string>("");
-    const [showQR, setShowQR] = useState(true); // Changed to true to show QR by default
-    const [qrError, setQrError] = useState(false);
+    const [showQR, setShowQR] = useState(true);
+    const [localQrError, setLocalQrError] = useState(false);
 
     const copyToClipboard = (text: string, field: string) => {
       navigator.clipboard.writeText(text);
@@ -361,23 +348,21 @@ export const Checkout = () => {
 
     const orderId = getOrderId();
 
-    // Get payment details from settings or use manual fallback
-    const upiId =
-      settings?.upi_id && settings.upi_id.trim() !== ""
-        ? settings.upi_id
-        : MANUAL_PAYMENT_DETAILS.upi_id;
-    const whatsappNumber =
-      settings?.whatsapp_number && settings.whatsapp_number.trim() !== ""
-        ? settings.whatsapp_number
-        : MANUAL_PAYMENT_DETAILS.whatsapp_number;
-    const paymentInstructions =
-      settings?.payment_instructions &&
-      settings.payment_instructions.trim() !== ""
-        ? settings.payment_instructions
-        : MANUAL_PAYMENT_DETAILS.payment_instructions;
+    // Get all payment details from settings
+    const upiId = settings?.upi_id || "";
+    const whatsappNumber = settings?.whatsapp_number || "";
+    const paymentInstructions = settings?.payment_instructions || "";
+    const accountHolderName = settings?.account_holder_name || "";
+    const bankName = settings?.bank_name || "";
+    const accountNumber = settings?.account_number || "";
+    const ifscCode = settings?.ifsc_code || "";
+    const qrCodeUrl = settings?.qr_code_url || "";
 
-    // QR Code image path - change this to your actual image path
-    const qrCodeUrl = MANUAL_PAYMENT_DETAILS.qr_code_url;
+    // Check if any payment details are available
+    const hasUPI = upiId && upiId.trim() !== "";
+    const hasBankDetails =
+      accountHolderName && bankName && accountNumber && ifscCode;
+    const hasQRCode = qrCodeUrl && qrCodeUrl.trim() !== "";
 
     if (!showPaymentDetails) return null;
 
@@ -460,200 +445,224 @@ export const Checkout = () => {
             </div>
 
             {/* UPI Payment Section with QR Code */}
-            <div className="mb-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
-              <div className="flex items-center gap-2 mb-3">
-                <Smartphone className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-gray-900">
-                  Scan & Pay with UPI
-                </h3>
-              </div>
+            {(hasUPI || hasQRCode) && (
+              <div className="mb-4 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-semibold text-gray-900">
+                    Scan & Pay with UPI
+                  </h3>
+                </div>
 
-              {/* QR Code Image */}
-              <div className="flex flex-col items-center mb-4 p-4 bg-white rounded-lg">
-                <img
-                  src={qrCodeUrl}
-                  alt="UPI QR Code - Scan to Pay"
-                  className="w-48 h-48 mb-2 object-contain"
-                  onError={(e) => {
-                    console.error(
-                      "QR Code failed to load from path:",
-                      qrCodeUrl,
-                    );
-                    setQrError(true);
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
-                {qrError && (
-                  <div className="text-center text-red-500 text-sm">
-                    <p>QR Code not found. Please use UPI ID below.</p>
+                {/* QR Code Image */}
+                {hasQRCode && (
+                  <div className="flex flex-col items-center mb-4 p-4 bg-white rounded-lg">
+                    <img
+                      src={
+                        qrCodeUrl.startsWith("http")
+                          ? qrCodeUrl
+                          : `${import.meta.env.VITE_API_URL || "http://localhost:4000"}${qrCodeUrl}`
+                      }
+                      alt="UPI QR Code - Scan to Pay"
+                      className="w-48 h-48 mb-2 object-contain"
+                      onError={(e) => {
+                        console.error("QR Code failed to load:", qrCodeUrl);
+                        setLocalQrError(true);
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    {!localQrError && (
+                      <>
+                        <p className="text-sm font-medium text-gray-700 mt-2">
+                          Scan this QR code to pay ₹
+                          {savedOrderTotal.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Using any UPI app: Google Pay, PhonePe, Paytm, etc.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
-                <p className="text-sm font-medium text-gray-700 mt-2">
-                  Scan this QR code to pay ₹{savedOrderTotal.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Using any UPI app: Google Pay, PhonePe, Paytm, etc.
-                </p>
-              </div>
 
-              <div className="mt-2">
-                <div className="flex items-center justify-between bg-white p-3 rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-500 mb-1">
-                      UPI ID (Manual Entry)
+                {/* UPI ID */}
+                {hasUPI && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between bg-white p-3 rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 mb-1">
+                          UPI ID (Manual Entry)
+                        </p>
+                        <code className="text-sm font-mono break-all">
+                          {upiId}
+                        </code>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(upiId, "UPI ID")}
+                        className="ml-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition flex-shrink-0"
+                      >
+                        {copiedField === "UPI ID" ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Or copy UPI ID to pay manually from your banking app
                     </p>
-                    <code className="text-sm font-mono break-all">{upiId}</code>
                   </div>
-                  <button
-                    onClick={() => copyToClipboard(upiId, "UPI ID")}
-                    className="ml-2 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition flex-shrink-0"
-                  >
-                    {copiedField === "UPI ID" ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Or copy UPI ID to pay manually from your banking app
-                </p>
+                )}
+
+                {!hasUPI && !hasQRCode && (
+                  <p className="text-sm text-yellow-600 text-center py-2">
+                    No UPI payment details configured. Please use bank transfer.
+                  </p>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Bank Transfer Section */}
-            <div className="mb-4 border-2 border-green-200 rounded-lg p-4 bg-green-50">
-              <div className="flex items-center gap-2 mb-3">
-                <Building2 className="h-5 w-5 text-green-600" />
-                <h3 className="font-semibold text-gray-900">
-                  Bank Transfer (NEFT/RTGS/IMPS)
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">
-                    Account Holder Name
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {MANUAL_PAYMENT_DETAILS.account_name}
-                    </span>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          MANUAL_PAYMENT_DETAILS.account_name,
-                          "Account Name",
-                        )
-                      }
-                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                    >
-                      {copiedField === "Account Name" ? (
-                        <Check className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
+            {hasBankDetails && (
+              <div className="mb-4 border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold text-gray-900">
+                    Bank Transfer (NEFT/RTGS/IMPS)
+                  </h3>
                 </div>
 
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Bank Name</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {MANUAL_PAYMENT_DETAILS.bank_name}
-                    </span>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          MANUAL_PAYMENT_DETAILS.bank_name,
-                          "Bank Name",
-                        )
-                      }
-                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                    >
-                      {copiedField === "Bank Name" ? (
-                        <Check className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                <div className="space-y-3">
+                  {accountHolderName && (
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Account Holder Name
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {accountHolderName}
+                        </span>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(accountHolderName, "Account Name")
+                          }
+                          className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                        >
+                          {copiedField === "Account Name" ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Account Number</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-mono">
-                      {MANUAL_PAYMENT_DETAILS.account_number}
-                    </span>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          MANUAL_PAYMENT_DETAILS.account_number,
-                          "Account Number",
-                        )
-                      }
-                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                    >
-                      {copiedField === "Account Number" ? (
-                        <Check className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
-                </div>
+                  {bankName && (
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">Bank Name</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{bankName}</span>
+                        <button
+                          onClick={() => copyToClipboard(bankName, "Bank Name")}
+                          className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                        >
+                          {copiedField === "Bank Name" ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                <div className="bg-white p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">IFSC Code</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-mono uppercase">
-                      {MANUAL_PAYMENT_DETAILS.ifsc_code}
-                    </span>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(
-                          MANUAL_PAYMENT_DETAILS.ifsc_code,
-                          "IFSC Code",
-                        )
-                      }
-                      className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
-                    >
-                      {copiedField === "IFSC Code" ? (
-                        <Check className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </button>
-                  </div>
+                  {accountNumber && (
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Account Number
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-mono">
+                          {accountNumber}
+                        </span>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(accountNumber, "Account Number")
+                          }
+                          className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                        >
+                          {copiedField === "Account Number" ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {ifscCode && (
+                    <div className="bg-white p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 mb-1">IFSC Code</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-mono uppercase">
+                          {ifscCode}
+                        </span>
+                        <button
+                          onClick={() => copyToClipboard(ifscCode, "IFSC Code")}
+                          className="ml-2 p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                        >
+                          {copiedField === "IFSC Code" ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Payment Instructions */}
-            <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="font-semibold text-yellow-800 mb-2">
-                📝 Payment Instructions
-              </h3>
-              <p className="text-sm text-yellow-700">{paymentInstructions}</p>
-              <ul className="text-xs text-yellow-700 mt-2 space-y-1 list-disc list-inside">
-                <li>After successful payment, please take a screenshot</li>
-                <li>
-                  Send the screenshot to WhatsApp number:{" "}
-                  <strong className="font-mono">{whatsappNumber}</strong>
-                </li>
-                <li>
-                  Include your Order ID:{" "}
-                  <strong className="font-mono">{orderId}</strong> in the
-                  message
-                </li>
-                <li>
-                  Your order will be confirmed within 2-4 hours after payment
-                  verification
-                </li>
-              </ul>
-            </div>
+            {paymentInstructions && (
+              <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="font-semibold text-yellow-800 mb-2">
+                  📝 Payment Instructions
+                </h3>
+                <p className="text-sm text-yellow-700 whitespace-pre-wrap">
+                  {paymentInstructions}
+                </p>
+                {whatsappNumber && (
+                  <ul className="text-xs text-yellow-700 mt-2 space-y-1 list-disc list-inside">
+                    <li>After successful payment, please take a screenshot</li>
+                    <li>
+                      Send the screenshot to WhatsApp number:{" "}
+                      <strong className="font-mono">{whatsappNumber}</strong>
+                    </li>
+                    <li>
+                      Include your Order ID:{" "}
+                      <strong className="font-mono">{orderId}</strong> in the
+                      message
+                    </li>
+                    <li>
+                      Your order will be confirmed within 2-4 hours after
+                      payment verification
+                    </li>
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {!hasUPI && !hasQRCode && !hasBankDetails && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-600 text-center">
+                  No payment methods configured. Please contact support.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button

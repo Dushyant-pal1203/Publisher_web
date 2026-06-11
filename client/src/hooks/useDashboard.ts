@@ -1,3 +1,4 @@
+// client/src/hooks/useDashboard.ts
 import { useState, useEffect } from "react";
 import { dashboardAPI } from "@/lib/api";
 
@@ -8,6 +9,7 @@ interface DashboardStats {
   catalogueSize: number;
   recentOrders: any[];
   catalogueBreakdown: any[];
+  monthlyRevenue: any[]; // Add this
 }
 
 export const useDashboard = () => {

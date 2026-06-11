@@ -90,4 +90,24 @@ router.get("/quick-stats", requireAuth, async (req, res) => {
   }
 });
 
+// server/routes/dashboard.js - Add this new endpoint
+router.get("/inventory-value", requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        COALESCE(SUM(price * COALESCE(stock_quantity, 0)), 0) as total_value
+      FROM articles
+      WHERE stock_quantity > 0
+    `);
+
+    res.json({
+      success: true,
+      totalValue: parseFloat(result.rows[0].total_value),
+    });
+  } catch (error) {
+    console.error("Inventory value error:", error);
+    res.status(500).json({ error: "Failed to fetch inventory value" });
+  }
+});
+
 module.exports = router;

@@ -43,29 +43,56 @@ export const Footer = () => {
               {settings.about ||
                 "We publish quality academic journals, literary works, and cultural publications that inspire and educate readers worldwide."}
             </p>
+            <div>
+              <h3 className="text-white font-semibold my-4">Follow Us</h3>
+              <div className="flex space-x-4">
+                <Facebook className="h-5 w-5 cursor-pointer hover:text-white transition" />
+                <Twitter className="h-5 w-5 cursor-pointer hover:text-white transition" />
+                <Instagram className="h-5 w-5 cursor-pointer hover:text-white transition" />
+              </div>
+            </div>
           </div>
 
           <div>
             <h3 className="text-white font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-white transition">
-                  Submit Manuscript
+                <a
+                  href="/payment-methods"
+                  className="hover:text-white transition"
+                >
+                  Payment Method
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
-                  Become a Reviewer
+                <a href="/contact" className="hover:text-white transition">
+                  Contact Us
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
-                  Advertising
+                <a href="/catalogue" className="hover:text-white transition">
+                  Catalogue
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
-                  FAQs
+                <a href="/about" className="hover:text-white transition">
+                  About
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-4">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a href="/terms" className="hover:text-white transition">
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a href="/privacy" className="hover:text-white transition">
+                  Privacy Policy
                 </a>
               </li>
             </ul>
@@ -132,20 +159,11 @@ export const Footer = () => {
                 )}
             </ul>
           </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">Follow Us</h3>
-            <div className="flex space-x-4">
-              <Facebook className="h-5 w-5 cursor-pointer hover:text-white transition" />
-              <Twitter className="h-5 w-5 cursor-pointer hover:text-white transition" />
-              <Instagram className="h-5 w-5 cursor-pointer hover:text-white transition" />
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-col md:flex-row mt-5 justify-between items-center gap-4 border-t border-white/10 py-4 text-xs font-mono text-muted-foreground uppercase tracking-widest">
           <div className="transition-colors text-white">
-            © 2024 {settings.publisher_name}. All rights reserved.
+            © 2026 {settings.publisher_name}. All rights reserved.
           </div>
           <div className="transition-colors text-white">
             Designed & Built with Passion By Dushyant Pal

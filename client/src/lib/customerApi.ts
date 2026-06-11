@@ -114,7 +114,7 @@ export const customerAuthAPI = {
     customerApi.put("/profile", data),
 
   changePassword: (data: ChangePasswordData): Promise<ApiResponse> =>
-    customerApi.put("/change-password", data),
+    customerApi.put("/profile", data),
 };
 
 export const customerOrderAPI = {

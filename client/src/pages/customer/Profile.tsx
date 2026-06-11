@@ -85,18 +85,37 @@ export const CustomerProfile = () => {
   };
 
   const handleChangePassword = async () => {
+    // Check if current password is provided or use default "123456"
+    const currentPassword = passwordData.current_password || "123456";
+
+    // Validate new password length
+    if (passwordData.new_password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    // Check if new password matches confirm password
     if (passwordData.new_password !== passwordData.confirm_password) {
       toast.error("New passwords do not match");
+      // Clear the confirm password field
+      setPasswordData((prev) => ({
+        ...prev,
+        confirm_password: "",
+      }));
       return;
     }
-    if (passwordData.new_password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+
+    // Check if new password is same as current password
+    if (currentPassword === passwordData.new_password) {
+      toast.error("New password cannot be the same as current password");
       return;
     }
+
     const success = await changePassword(
-      passwordData.current_password,
+      currentPassword,
       passwordData.new_password,
     );
+
     if (success) {
       setIsChangingPassword(false);
       setPasswordData({
@@ -104,6 +123,7 @@ export const CustomerProfile = () => {
         new_password: "",
         confirm_password: "",
       });
+      toast.success("Password changed successfully!");
     }
   };
 
@@ -424,7 +444,11 @@ export const CustomerProfile = () => {
                   placeholder="Enter current password"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  If you haven't set a password before, use default: 123456
+                </p>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   New Password
@@ -435,9 +459,21 @@ export const CustomerProfile = () => {
                   value={passwordData.new_password}
                   onChange={handlePasswordChange}
                   placeholder="Enter new password (min 6 characters)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    passwordData.new_password &&
+                    passwordData.new_password.length < 6
+                      ? "border-red-300"
+                      : "border-gray-300"
+                  }`}
                 />
+                {passwordData.new_password &&
+                  passwordData.new_password.length < 6 && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Password must be at least 6 characters long
+                    </p>
+                  )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Confirm New Password
@@ -448,9 +484,22 @@ export const CustomerProfile = () => {
                   value={passwordData.confirm_password}
                   onChange={handlePasswordChange}
                   placeholder="Confirm new password"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    passwordData.confirm_password &&
+                    passwordData.new_password !== passwordData.confirm_password
+                      ? "border-red-300"
+                      : "border-gray-300"
+                  }`}
                 />
+                {passwordData.confirm_password &&
+                  passwordData.new_password !==
+                    passwordData.confirm_password && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Passwords do not match
+                    </p>
+                  )}
               </div>
+
               <div className="flex gap-3">
                 <Button
                   onClick={() => {

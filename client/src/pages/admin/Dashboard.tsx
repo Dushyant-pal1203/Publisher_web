@@ -8,19 +8,22 @@ import {
   Clock,
   BookOpen,
   Package,
-  TrendingUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { articleAPI, dashboardAPI } from "@/lib/api";
+import { dashboardAPI, orderAPI } from "@/lib/api";
+import { Modal } from "@/components/common/Modal";
 
 export const AdminDashboard = () => {
   const { stats, loading } = useDashboard();
   const navigate = useNavigate();
   const [totalInventoryValue, setTotalInventoryValue] = useState(0);
   const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any>(null);
+  const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
 
-  // Fetch inventory value - FIXED calculation
+  // Fetch inventory value
   useEffect(() => {
     const fetchInventoryValue = async () => {
       try {
@@ -34,7 +37,26 @@ export const AdminDashboard = () => {
     };
 
     fetchInventoryValue();
-  }, []); // Remove stats dependency to avoid re-fetching
+  }, []);
+
+  // Fetch complete order details when an order is selected
+  const handleOrderClick = async (order: any) => {
+    setSelectedOrder(order);
+    setLoadingOrderDetails(true);
+
+    try {
+      const response = await orderAPI.getById(order.id);
+      // IMPORTANT FIX: The order data is nested inside 'order' property
+      const orderData = response.data.order || response.data;
+      setSelectedOrderDetails(orderData);
+    } catch (error) {
+      console.error("Failed to fetch order details:", error);
+      // Fallback to the order data we already have
+      setSelectedOrderDetails(order);
+    } finally {
+      setLoadingOrderDetails(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -115,6 +137,9 @@ export const AdminDashboard = () => {
     },
   ];
 
+  // Get the order details to display (either fetched details or fallback to selected order)
+  const displayOrder = selectedOrderDetails || selectedOrder;
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
@@ -169,7 +194,7 @@ export const AdminDashboard = () => {
                   <tr
                     key={order.id}
                     className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                    onClick={() => handleOrderClick(order)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       #{order.id}
@@ -338,6 +363,96 @@ export const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Order Details Modal - Same as Orders.tsx */}
+      <Modal
+        isOpen={!!selectedOrder}
+        onClose={() => {
+          setSelectedOrder(null);
+          setSelectedOrderDetails(null);
+        }}
+        title="Order Details"
+      >
+        {loadingOrderDetails ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : (
+          displayOrder && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">
+                  Order Information
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Order #{displayOrder.id}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Date:{" "}
+                  {displayOrder.created_at
+                    ? new Date(displayOrder.created_at).toLocaleString()
+                    : new Date().toLocaleString()}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900">Article Details</h3>
+                <p className="text-sm text-gray-600">
+                  Title: {displayOrder.article_title || "N/A"}
+                </p>
+                {displayOrder.article_author && (
+                  <p className="text-sm text-gray-600">
+                    Author: {displayOrder.article_author}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600">
+                  Quantity: {displayOrder.quantity || 1}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Total: ₹{displayOrder.total_amount || 0}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900">
+                  Customer Details
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Name: {displayOrder.customer_name || "N/A"}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Phone: {displayOrder.customer_phone || "N/A"}
+                </p>
+                {displayOrder.customer_email && (
+                  <p className="text-sm text-gray-600">
+                    Email: {displayOrder.customer_email}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600">
+                  Address: {displayOrder.customer_address || "N/A"}
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-gray-900">Payment</h3>
+                <p className="text-sm text-gray-600">
+                  Method: {displayOrder.payment_method || "N/A"}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Status: <StatusBadge status={displayOrder.status} />
+                </p>
+              </div>
+
+              {displayOrder.notes && (
+                <div>
+                  <h3 className="font-semibold text-gray-900">Notes</h3>
+                  <p className="text-sm text-gray-600">{displayOrder.notes}</p>
+                </div>
+              )}
+            </div>
+          )
+        )}
+      </Modal>
     </div>
   );
 };

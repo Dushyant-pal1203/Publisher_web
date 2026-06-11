@@ -282,4 +282,187 @@ router.post("/logout", (req, res) => {
   });
 });
 
+// Get current user profile (alias for /me with more details)
+router.get("/profile", requireAuth, async (req, res) => {
+  console.log("GET /profile - Session ID:", req.sessionID);
+  console.log("GET /profile - Session userId:", req.session?.userId);
+
+  if (!req.session || !req.session.userId) {
+    console.log("No session or userId found");
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT id, email, phone_number, first_name, last_name, role, profile_image_url, is_active, created_at, last_login_at 
+       FROM admin_users 
+       WHERE id = $1 AND is_active = true`,
+      [req.session.userId],
+    );
+
+    if (result.rows.length === 0) {
+      console.log("User not found for id:", req.session.userId);
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    const admin = result.rows[0];
+
+    console.log("User found:", admin.email || admin.phone_number);
+    res.json({
+      user: {
+        id: admin.id,
+        name: `${admin.first_name || ""} ${admin.last_name || ""}`.trim(),
+        email: admin.email,
+        phone_number: admin.phone_number,
+        first_name: admin.first_name,
+        last_name: admin.last_name,
+        role: admin.role,
+        profile_image_url: admin.profile_image_url,
+        created_at: admin.created_at,
+        last_login_at: admin.last_login_at,
+      },
+    });
+  } catch (error) {
+    console.error("GET /profile error:", error);
+    res
+      .status(500)
+      .json({ error: "Internal server error", details: error.message });
+  }
+});
+
+// Update profile
+router.put("/profile", requireAuth, async (req, res) => {
+  const { name, email, first_name, last_name } = req.body;
+
+  console.log("PUT /profile - Updating user:", req.session.userId);
+
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // Handle both combined name and individual fields
+  let finalFirstName = first_name;
+  let finalLastName = last_name;
+
+  if (name && !first_name && !last_name) {
+    const nameParts = name.trim().split(" ");
+    finalFirstName = nameParts[0] || "";
+    finalLastName = nameParts.slice(1).join(" ") || "";
+  }
+
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    // Check if email is already taken by another admin
+    const emailCheck = await pool.query(
+      "SELECT id FROM admin_users WHERE email = $1 AND id != $2",
+      [email, req.session.userId],
+    );
+
+    if (emailCheck.rows.length > 0) {
+      return res.status(400).json({ error: "Email already in use" });
+    }
+
+    // Update admin profile
+    const result = await pool.query(
+      `UPDATE admin_users 
+       SET first_name = $1, last_name = $2, email = $3, updated_at = NOW() 
+       WHERE id = $4 
+       RETURNING id, email, first_name, last_name, role, phone_number`,
+      [finalFirstName, finalLastName, email, req.session.userId],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const admin = result.rows[0];
+
+    res.json({
+      user: {
+        id: admin.id,
+        name: `${admin.first_name || ""} ${admin.last_name || ""}`.trim(),
+        email: admin.email,
+        first_name: admin.first_name,
+        last_name: admin.last_name,
+        role: admin.role,
+        phone_number: admin.phone_number,
+      },
+    });
+  } catch (error) {
+    console.error("PUT /profile error:", error);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// Change password
+router.post("/change-password", requireAuth, async (req, res) => {
+  const { current_password, new_password } = req.body;
+
+  console.log("POST /change-password - For user:", req.session.userId);
+
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({
+      error: "Current password and new password are required",
+    });
+  }
+
+  if (new_password.length < 6) {
+    return res.status(400).json({
+      error: "New password must be at least 6 characters long",
+    });
+  }
+
+  try {
+    // Get admin with password
+    const result = await pool.query(
+      "SELECT id, password FROM admin_users WHERE id = $1",
+      [req.session.userId],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const admin = result.rows[0];
+
+    // Check if admin has a password set
+    if (!admin.password) {
+      return res.status(400).json({
+        error:
+          "This account uses OTP login. Please contact support to set up password login.",
+      });
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(
+      current_password,
+      admin.password,
+    );
+    if (!isValidPassword) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    // Update password
+    await pool.query(
+      "UPDATE admin_users SET password = $1, updated_at = NOW() WHERE id = $2",
+      [hashedPassword, req.session.userId],
+    );
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("POST /change-password error:", error);
+    res.status(500).json({ error: "Failed to change password" });
+  }
+});
+
 module.exports = router;

@@ -55,6 +55,7 @@ const validateEmail = (email) => {
 };
 
 const validatePhoneNumber = (phone) => {
+  // Support both with and without country code
   const re =
     /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/;
   return re.test(phone);
@@ -175,21 +176,36 @@ router.post("/signup", async (req, res) => {
 });
 
 // Customer Login with Email/Password
+// Customer Login with Email/Password (modified to accept phone number as email)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  console.log("Customer login attempt for email:", email);
+  console.log("Customer login attempt for email/phone:", email);
 
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password required" });
   }
 
   try {
-    const result = await pool.query(
-      `SELECT id, email, first_name, last_name, phone_number, password, profile_image_url 
-       FROM users WHERE email = $1`,
-      [email],
-    );
+    // Check if the input is a phone number or email
+    const isPhoneNumber = validatePhoneNumber(email);
+
+    let result;
+    if (isPhoneNumber) {
+      // If input is a phone number, search by phone_number
+      result = await pool.query(
+        `SELECT id, email, first_name, last_name, phone_number, password, profile_image_url 
+         FROM users WHERE phone_number = $1`,
+        [email],
+      );
+    } else {
+      // Otherwise search by email
+      result = await pool.query(
+        `SELECT id, email, first_name, last_name, phone_number, password, profile_image_url 
+         FROM users WHERE email = $1`,
+        [email],
+      );
+    }
 
     if (result.rows.length === 0) {
       console.log("User not found:", email);
@@ -468,7 +484,7 @@ router.put("/profile", async (req, res) => {
 });
 
 // Change password
-router.put("/change-password", async (req, res) => {
+router.put("/profile", async (req, res) => {
   console.log(
     "Change password request for customerId:",
     req.session?.customerId,

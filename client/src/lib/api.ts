@@ -54,6 +54,13 @@ export const authAPI = {
     api.post("/auth/send-otp", { phone_number }),
   logout: () => api.post("/auth/logout"),
   setup: (data: any) => api.post("/auth/setup", data),
+
+  // ✅ THESE ARE ALREADY ADDED - Good!
+  getProfile: () => api.get("/auth/profile"),
+  updateProfile: (data: { name: string; email: string }) =>
+    api.put("/auth/profile", data),
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.post("/auth/change-password", data),
 };
 
 // Article API

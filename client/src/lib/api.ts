@@ -128,13 +128,25 @@ export const customerOrderAPI = {
 export const dashboardAPI = {
   getStats: () => api.get("/dashboard/stats"),
   getQuickStats: () => api.get("/dashboard/quick-stats"),
+  getInventoryValue: () => api.get("/dashboard/inventory-value"), // Add this
 };
 
 // Settings API
 export const settingsAPI = {
   get: () => api.get("/settings"),
-  update: (data: any) => api.put("/settings", data),
+  update: (data: any) => {
+    // Check if data is FormData for file upload
+    if (data instanceof FormData) {
+      return api.put("/settings", data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+    return api.put("/settings", data);
+  },
   getPublic: () => api.get("/settings/public"),
+  deleteQRCode: () => api.delete("/settings/qr-code"),
 };
 
 export default api;

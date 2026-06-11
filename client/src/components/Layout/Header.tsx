@@ -118,6 +118,12 @@ export const Header = () => {
             >
               About
             </Link>
+            <Link
+              to="/contact"
+              className="text-gray-700 hover:text-blue-600 transition"
+            >
+              Contact Us
+            </Link>
 
             {/* Customer Account - Updated with avatar, name, and email */}
             {customerUser ? (
@@ -320,7 +326,13 @@ export const Header = () => {
             >
               About
             </Link>
-
+            <Link
+              to="/contact"
+              onClick={closeMenu}
+              className="text-gray-700 hover:text-blue-600 transition py-2"
+            >
+              Contact Us
+            </Link>
             {customerUser ? (
               <>
                 <Link

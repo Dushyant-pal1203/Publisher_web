@@ -293,8 +293,15 @@ export const OrderConfirmation = () => {
                 confirm your order.
               </p>
               <p className="text-xs text-blue-700">
-                If you haven't saved the payment details, please check the
-                payment modal or contact our support.
+                If you haven't saved the payment details, please check the{" "}
+                <a href="/payment-methods" className="text-green-600">
+                  payment method
+                </a>{" "}
+                or{" "}
+                <a href="/contact" className="text-green-600">
+                  contact
+                </a>{" "}
+                page for support.
               </p>
             </div>
           )}

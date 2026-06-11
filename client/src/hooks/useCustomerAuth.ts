@@ -164,7 +164,7 @@ export const useCustomerAuth = () => {
           "warning",
           5000,
         );
-        navigate("/customer/change-password");
+        navigate("/customer/profile");
       } else {
         navigate("/customer/dashboard");
       }

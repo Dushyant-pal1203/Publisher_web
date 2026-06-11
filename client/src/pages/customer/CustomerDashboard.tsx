@@ -65,37 +65,37 @@ export const CustomerDashboard = () => {
   useEffect(() => {
     if (user) {
       fetchCustomerData();
-      loadLocalOrders();
+      // loadLocalOrders();
     }
   }, [user]);
 
-  const loadLocalOrders = () => {
-    if (!user) return;
+  // const loadLocalOrders = () => {
+  //   if (!user) return;
 
-    const userPhone = user.phone_number;
-    const userEmail = user.email?.toLowerCase();
-    let matchedCount = 0;
+  //   const userPhone = user.phone_number;
+  //   const userEmail = user.email?.toLowerCase();
+  //   let matchedCount = 0;
 
-    const savedOrders = localStorage.getItem("userOrders");
-    if (savedOrders) {
-      try {
-        const orders: LocalOrder[] = JSON.parse(savedOrders);
-        const matched = orders.filter((order) => {
-          const orderPhone = order.customer?.phone;
-          const orderEmail = order.customer?.email?.toLowerCase();
-          return (
-            (orderPhone && userPhone && orderPhone === userPhone) ||
-            (orderEmail && userEmail && orderEmail === userEmail)
-          );
-        });
-        matchedCount = matched.length;
-      } catch (error) {
-        console.error("Failed to parse local orders:", error);
-      }
-    }
+  //   const savedOrders = localStorage.getItem("userOrders");
+  //   if (savedOrders) {
+  //     try {
+  //       const orders: LocalOrder[] = JSON.parse(savedOrders);
+  //       const matched = orders.filter((order) => {
+  //         const orderPhone = order.customer?.phone;
+  //         const orderEmail = order.customer?.email?.toLowerCase();
+  //         return (
+  //           (orderPhone && userPhone && orderPhone === userPhone) ||
+  //           (orderEmail && userEmail && orderEmail === userEmail)
+  //         );
+  //       });
+  //       matchedCount = matched.length;
+  //     } catch (error) {
+  //       console.error("Failed to parse local orders:", error);
+  //     }
+  //   }
 
-    setLocalOrderCount(matchedCount);
-  };
+  //   setLocalOrderCount(matchedCount);
+  // };
 
   const fetchCustomerData = async () => {
     try {
@@ -234,7 +234,7 @@ export const CustomerDashboard = () => {
       </div>
 
       {/* Guest Orders Alert */}
-      {localOrderCount > 0 && (
+      {/* {localOrderCount > 0 && (
         <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center gap-3">
             <AlertCircle className="h-5 w-5 text-blue-600" />
@@ -252,7 +252,7 @@ export const CustomerDashboard = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -266,11 +266,11 @@ export const CustomerDashboard = () => {
               <p className="text-2xl font-bold text-gray-900">
                 {stats.totalOrders + localOrderCount}
               </p>
-              {localOrderCount > 0 && (
+              {/* {localOrderCount > 0 && (
                 <p className="text-xs text-blue-600">
                   +{localOrderCount} guest orders
                 </p>
-              )}
+              )} */}
             </div>
           </div>
         </div>
@@ -339,7 +339,8 @@ export const CustomerDashboard = () => {
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : recentOrders.length === 0 && localOrderCount === 0 ? (
+        ) : // ) : recentOrders.length === 0 && localOrderCount === 0 ? (
+        recentOrders.length === 0 ? (
           <div className="p-12 text-center justify-items-center">
             <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No orders yet</p>
@@ -402,7 +403,7 @@ export const CustomerDashboard = () => {
                 </div>
               </div>
             ))}
-            {localOrderCount > 0 && recentOrders.length === 0 && (
+            {/* {localOrderCount > 0 && recentOrders.length === 0 && (
               <div className="p-6 text-center">
                 <p className="text-gray-500">
                   You have {localOrderCount} guest order(s).
@@ -411,7 +412,7 @@ export const CustomerDashboard = () => {
                   </Link>
                 </p>
               </div>
-            )}
+            )} */}
           </div>
         )}
       </div>

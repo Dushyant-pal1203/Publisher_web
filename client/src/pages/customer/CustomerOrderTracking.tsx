@@ -21,6 +21,7 @@ import {
   CreditCard,
   PackagePlus,
   FileText,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useToast } from "@/context/ToastContext";
@@ -481,9 +482,9 @@ export const CustomerOrderTracking = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate("/customer/orders")}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center gap-2  text-gray-500 hover:text-gray-700 transition-colors duration-200 group mb-6"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
           Back to Orders
         </button>
         <div className="flex justify-between items-start flex-wrap gap-4">
@@ -765,23 +766,61 @@ export const CustomerOrderTracking = () => {
         )}
       </div>
 
+      <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <CreditCard className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">
+                Need Payment Information?
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Check out our payment methods page for UPI, Bank Transfer, and
+                QR code options
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="secondary"
+            size="md"
+            className="gap-2 inline-flex duration-200 group"
+          >
+            <Link to="/payment-methods" className="flex gap-2 items-center">
+              View Payment Methods
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+
       {/* Action Buttons */}
       <div className="flex justify-between gap-4 mt-8">
         <Link to="/catalogue">
-          <Button variant="secondary" className="gap-2">
+          <Button
+            variant="secondary"
+            className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
             <ShoppingBag className="h-4 w-4" />
             Continue Shopping
           </Button>
         </Link>
         <div className="flex gap-3">
           <Link to="/customer/orders">
-            <Button variant="secondary" className="gap-2">
+            <Button
+              variant="secondary"
+              className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
               <Home className="h-4 w-4" />
               All Orders
             </Button>
           </Link>
           <Link to={`/customer/orders/bill/${getOrderId()}`}>
-            <Button variant="secondary" className="gap-2">
+            <Button
+              variant="secondary"
+              className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
               <FileText className="h-4 w-4" />
               View Bill
             </Button>

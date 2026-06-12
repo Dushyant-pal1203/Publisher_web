@@ -224,7 +224,10 @@ export const CustomerDashboard = () => {
               publications.
             </p>
           </div>
-          <Button className="gap-2" variant="secondary">
+          <Button
+            className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            variant="secondary"
+          >
             <Link to="/catalogue" className="flex gap-2 items-center">
               <Plus className="h-4 w-4" />
               New Order
@@ -327,10 +330,14 @@ export const CustomerDashboard = () => {
             </h2>
             <p className="text-sm text-gray-500 mt-1">Your latest purchases</p>
           </div>
-          <Button className="gap-2">
+          <Button
+            variant="secondary"
+            size="md"
+            className="gap-2 inline-flex duration-200 group"
+          >
             <Link to="/customer/orders" className="flex gap-2 items-center">
               View All Orders
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
         </div>
@@ -424,10 +431,14 @@ export const CustomerDashboard = () => {
           <p className="text-sm text-gray-600 mb-4">
             Contact our support team for assistance with your orders.
           </p>
-          <Button className="gap-2 hover:text-purple-700">
+          <Button
+            variant="secondary"
+            size="md"
+            className="gap-2 inline-flex duration-200 group"
+          >
             <Link to="/about" className="flex gap-2 items-center">
               Contact Support
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
         </div>
@@ -436,10 +447,14 @@ export const CustomerDashboard = () => {
           <p className="text-sm text-gray-600 mb-4">
             Explore our latest collection of books and journals.
           </p>
-          <Button className="gap-2">
+          <Button
+            variant="secondary"
+            size="md"
+            className="!bg-black gap-2 inline-flex duration-200 group"
+          >
             <Link to="/catalogue" className="flex gap-2 items-center">
               Browse Catalogue
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
         </div>

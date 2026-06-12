@@ -405,7 +405,7 @@ export const PaymentMethods = () => {
                       href={`https://wa.me/${formatWhatsAppNumber(whatsappNumber)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 hover:border-red-400 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm"
                     >
                       <MessageCircle className="w-4 h-4" />
                       Send Payment Proof on WhatsApp
@@ -496,7 +496,7 @@ export const PaymentMethods = () => {
                 href={`https://wa.me/${formatWhatsAppNumber(whatsappNumber)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                className="inline-flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 hover:border-red-400 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 <MessageCircle className="w-4 h-4" />
                 WhatsApp Support
@@ -505,7 +505,7 @@ export const PaymentMethods = () => {
             {contactEmail && (
               <a
                 href={`mailto:${contactEmail}`}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                className="inline-flex items-center gap-2 px-6 py-2 bg-gray-600 text-white rounded-lg hover:border-red-400 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 Email Support
               </a>

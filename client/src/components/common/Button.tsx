@@ -18,13 +18,13 @@ export const Button = ({
 }: ButtonProps) => {
   const variants = {
     primary:
-      "bg-gradient-to-r from-gray-900 to-gray-800 hover:from-white hover:to-white hover:text-gray-900 text-white border border-gray-700 hover:border-gray-300",
+      "bg-gradient-to-r from-gray-900 to-gray-800 hover:from-white hover:to-white hover:text-gray-900 text-white border border-gray-700 hover:border-gray-300 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
     secondary:
       "bg-gray-600 hover:bg-gray-700 text-white border border-gray-500 hover:border-gray-400",
     danger:
-      "bg-red-600 hover:bg-red-700 text-white border border-red-500 hover:border-red-400",
+      "bg-red-600 hover:bg-red-700 text-white border border-red-500 hover:border-red-400 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
     success:
-      "bg-green-600 hover:bg-green-700 text-white border border-green-500 hover:border-green-400",
+      "bg-green-600 hover:bg-green-700 text-white border border-green-500 hover:border-green-400 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
   };
 
   const sizes = {
@@ -35,7 +35,7 @@ export const Button = ({
 
   return (
     <button
-      className={`${variants[variant]} ${sizes[size]} flex items-center justify-center rounded-lg font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${className}`}
+      className={`${variants[variant]} ${sizes[size]} flex items-center justify-center rounded-lg font-medium  ${className}`}
       disabled={disabled || isLoading}
       {...props}
     >

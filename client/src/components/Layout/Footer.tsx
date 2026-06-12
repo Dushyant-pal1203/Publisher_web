@@ -25,6 +25,7 @@ export const Footer = () => {
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 py-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* House Detail */}
           <div>
             <div className="flex items-center mb-4 gap-2">
               <a href="/" className="flex">
@@ -52,7 +53,69 @@ export const Footer = () => {
               </div>
             </div>
           </div>
+          {/* Contact Info  */}
+          <div>
+            <h3 className="text-white font-semibold mb-4">Contact Info</h3>
+            <ul className="space-y-2 text-sm">
+              {/* Email */}
+              {settings.contact_email && settings.contact_email !== "" && (
+                <li>
+                  <a
+                    href={`mailto:${settings.contact_email}`}
+                    className="hover:text-white transition flex items-center space-x-2 gap-2"
+                  >
+                    <Mail className="h-4 w-4 flex-shrink-0" />
+                    {settings.contact_email}
+                  </a>
+                </li>
+              )}
 
+              {/* Phone/WhatsApp Number */}
+              {settings.whatsapp_number && settings.whatsapp_number !== "" && (
+                <li>
+                  <a
+                    href={`tel:${settings.whatsapp_number}`}
+                    className="hover:text-white transition flex items-center space-x-2 gap-2"
+                  >
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    +91 {settings.whatsapp_number}
+                  </a>
+                </li>
+              )}
+
+              {/* Address */}
+              {settings.contact_address && settings.contact_address !== "" && (
+                <li>
+                  <div className="flex space-x-2 gap-2">
+                    <MapPin className="mt-1 h-4 w-4 flex-shrink-0" />
+                    {settings.contact_address}
+                  </div>
+                </li>
+              )}
+
+              {/* Default contact info */}
+              {(!settings.whatsapp_number || settings.whatsapp_number === "") &&
+                (!settings.contact_email || settings.contact_email === "") &&
+                (!settings.contact_address ||
+                  settings.contact_address === "") && (
+                  <>
+                    <li className="flex items-center space-x-2">
+                      <Phone className="h-4 w-4" />
+                      <span>+91 9310004022</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4" />
+                      <span>contact@publishinghouse.com</span>
+                    </li>
+                    <li className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>New Delhi, India</span>
+                    </li>
+                  </>
+                )}
+            </ul>
+          </div>
+          {/* Link list 1 */}
           <div>
             <h3 className="text-white font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
@@ -81,7 +144,7 @@ export const Footer = () => {
               </li>
             </ul>
           </div>
-
+          {/* Link list 2 */}
           <div>
             <h3 className="font-semibold text-white mb-4">Legal</h3>
             <ul className="space-y-2 text-sm">
@@ -95,68 +158,6 @@ export const Footer = () => {
                   Privacy Policy
                 </a>
               </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-white font-semibold mb-4">Contact Info</h3>
-            <ul className="space-y-2 text-sm">
-              {/* Email */}
-              {settings.contact_email && settings.contact_email !== "" && (
-                <li>
-                  <a
-                    href={`mailto:${settings.contact_email}`}
-                    className="hover:text-white transition flex items-center space-x-2 gap-2"
-                  >
-                    <Mail className="h-4 w-4 flex-shrink-0" />
-                    {settings.contact_email}
-                  </a>
-                </li>
-              )}
-
-              {/* Phone/WhatsApp Number */}
-              {settings.whatsapp_number && settings.whatsapp_number !== "" && (
-                <li>
-                  <a
-                    href={`tel:${settings.whatsapp_number}`}
-                    className="hover:text-white transition flex items-center space-x-2 gap-2"
-                  >
-                    <Phone className="h-4 w-4 flex-shrink-0" />
-                    {settings.whatsapp_number}
-                  </a>
-                </li>
-              )}
-
-              {/* Address */}
-              {settings.contact_address && settings.contact_address !== "" && (
-                <li>
-                  <div className="flex items-center space-x-2 gap-2">
-                    <MapPin className="h-4 w-4 flex-shrink-0" />
-                    {settings.contact_address}
-                  </div>
-                </li>
-              )}
-
-              {/* Default contact info */}
-              {(!settings.whatsapp_number || settings.whatsapp_number === "") &&
-                (!settings.contact_email || settings.contact_email === "") &&
-                (!settings.contact_address ||
-                  settings.contact_address === "") && (
-                  <>
-                    <li className="flex items-center space-x-2">
-                      <Phone className="h-4 w-4" />
-                      <span>+91 9310004022</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <Mail className="h-4 w-4" />
-                      <span>contact@publishinghouse.com</span>
-                    </li>
-                    <li className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>New Delhi, India</span>
-                    </li>
-                  </>
-                )}
             </ul>
           </div>
         </div>

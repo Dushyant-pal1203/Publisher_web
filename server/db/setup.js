@@ -13,16 +13,18 @@ async function setupDatabase() {
     console.log("✅ Database schema created successfully");
 
     // Create default admin user if not exists
-    const hashedPassword = await bcrypt.hash("admin123", 10);
+    const hashedPassword = await bcrypt.hash("admin1203", 10);
     await pool.query(
       `
       INSERT INTO admin_users (email, password, first_name, last_name, role, is_active) 
       VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (email) DO NOTHING
     `,
-      ["admin@example.com", hashedPassword, "Admin", "User", "admin", true],
+      ["admin@123gmail.com", hashedPassword, "Admin", "User", "admin", true],
     );
-    console.log("✅ Default admin user created (admin@example.com / admin123)");
+    console.log(
+      "✅ Default admin user created (admin@123gmail.com / admin1203)",
+    );
 
     // Insert sample articles
     await pool.query(`

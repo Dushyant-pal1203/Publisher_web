@@ -138,7 +138,7 @@ async function initializeDatabase() {
 
     // Create default admin user if not exists
     const bcrypt = require("bcryptjs");
-    const hashedPassword = await bcrypt.hash("admin123", 10);
+    const hashedPassword = await bcrypt.hash("admin1203", 10);
 
     await pool.query(
       `
@@ -146,9 +146,9 @@ async function initializeDatabase() {
       VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (email) DO NOTHING
     `,
-      ["admin@example.com", hashedPassword, "Admin", "User", "admin", true],
+      ["admin@123gmail.com", hashedPassword, "Admin", "User", "admin", true],
     );
-    console.log("✅ Default admin user ready (admin@example.com / admin123)");
+    console.log("✅ Default admin user ready (admin@123gmail.com / admin1203)");
 
     // Insert sample articles if table is empty
     const articleCount = await pool.query(
@@ -208,7 +208,7 @@ async function startServer() {
       console.log(`📡 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`🔗 CORS enabled for: http://localhost:5173`);
       console.log(`\n📚 Publishing House Management System is ready!`);
-      console.log(`🔐 Admin Login: admin@example.com / admin123\n`);
+      console.log(`🔐 Admin Login: admin@123gmail.com / admin1203\n`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);

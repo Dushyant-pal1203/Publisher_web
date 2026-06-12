@@ -210,9 +210,9 @@ export const BillDetail = () => {
       <div className="mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center gap-2  text-gray-500 hover:text-gray-700 transition-colors duration-200 group mb-6"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
         <div className="flex justify-between items-center flex-wrap gap-4">
@@ -226,11 +226,19 @@ export const BillDetail = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button onClick={handlePrint} variant="secondary" className="gap-2">
+            <Button
+              onClick={handlePrint}
+              variant="secondary"
+              className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
               <Printer className="h-4 w-4" />
               Print
             </Button>
-            <Button onClick={handleShare} variant="secondary" className="gap-2">
+            <Button
+              onClick={handleShare}
+              variant="secondary"
+              className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
               <Share2 className="h-4 w-4" />
               Share
             </Button>
@@ -282,7 +290,10 @@ export const BillDetail = () => {
       {/* Action Buttons */}
       <div className="flex justify-between gap-4 mt-8">
         <Link to={`/customer/orders/${orderId}`}>
-          <Button variant="secondary" className="gap-2">
+          <Button
+            variant="secondary"
+            className="gap-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
             <Package className="h-4 w-4" />
             Track Order
           </Button>

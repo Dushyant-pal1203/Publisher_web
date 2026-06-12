@@ -11,6 +11,7 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
+import { Button } from "@/components/common/Button";
 
 export const About = () => {
   const { settings, loading } = useSettings();
@@ -283,9 +284,7 @@ export const About = () => {
                     placeholder="Your message..."
                   ></textarea>
                 </div>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                  Send Message
-                </button>
+                <Button className="mx-auto">Send Message</Button>
               </form>
             </div>
             <div className="flex flex-col justify-between gap-8">

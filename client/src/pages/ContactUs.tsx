@@ -20,6 +20,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { Button } from "@/components/common/Button";
 
 export const ContactUs = () => {
   const { settings, loading } = useSettings();
@@ -364,10 +365,10 @@ export const ContactUs = () => {
                     />
                   </div>
 
-                  <button
+                  <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="mx-auto "
                   >
                     {isSubmitting ? (
                       <>
@@ -380,7 +381,7 @@ export const ContactUs = () => {
                         Send Message
                       </>
                     )}
-                  </button>
+                  </Button>
 
                   <p className="text-xs text-gray-500 text-center mt-4">
                     By submitting this form, you agree to our privacy policy and
@@ -409,13 +410,16 @@ export const ContactUs = () => {
                 </p>
               </div>
             </div>
-            <Link
-              to="/payment-methods"
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium whitespace-nowrap"
+            <Button
+              variant="secondary"
+              size="md"
+              className="gap-2 inline-flex duration-200 group"
             >
-              View Payment Methods
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+              <Link to="/payment-methods" className="flex gap-2 items-center">
+                View Payment Methods
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
           </div>
         </div>
 

@@ -317,7 +317,7 @@ export const OrderConfirmation = () => {
             <Button
               onClick={handleMyOrdersClick}
               variant="secondary"
-              className="gap-2 px-4 py-2"
+              className="gap-2 px-4 py-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <ShoppingBag className="h-4 w-4" />
               {customerUser ? "My Orders" : "Guest Orders"}

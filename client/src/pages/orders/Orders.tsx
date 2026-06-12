@@ -365,10 +365,13 @@ export const Orders = () => {
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Button onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4" />
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-2  text-gray-500 hover:text-gray-700 transition-colors duration-200 group mb-6"
+            >
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
               Back
-            </Button>
+            </button>
 
             <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
           </div>

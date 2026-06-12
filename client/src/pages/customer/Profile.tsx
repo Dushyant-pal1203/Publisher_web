@@ -310,6 +310,7 @@ export const CustomerProfile = () => {
                   }}
                   variant="secondary"
                   size="sm"
+                  className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   Cancel
                 </Button>
@@ -511,6 +512,7 @@ export const CustomerProfile = () => {
                     });
                   }}
                   variant="secondary"
+                  className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   Cancel
                 </Button>

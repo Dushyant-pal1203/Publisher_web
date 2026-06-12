@@ -1,17 +1,72 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useOrders } from "@/hooks/useOrders";
 import { StatusBadge } from "@/components/UI/StatusBadge";
 import { Modal } from "@/components/common/Modal";
 import { Eye, Search, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 export const AdminOrders = () => {
   const { orders, loading, updateOrderStatus } = useOrders();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<"id" | "customer" | "payment">(
     "customer",
   );
+
+  // Read initial filters from URL
+  useEffect(() => {
+    const urlStatus = searchParams.get("status");
+    const urlSearchType = searchParams.get("searchType") as
+      | "id"
+      | "customer"
+      | "payment";
+    const urlSearchTerm = searchParams.get("searchTerm");
+
+    // Set status filter from URL
+    if (
+      urlStatus &&
+      [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ].includes(urlStatus)
+    ) {
+      setStatusFilter(urlStatus);
+    }
+
+    // Set search filters from URL
+    if (
+      urlSearchType &&
+      ["id", "customer", "payment"].includes(urlSearchType)
+    ) {
+      setSearchType(urlSearchType);
+    }
+
+    if (urlSearchTerm) {
+      setSearchTerm(urlSearchTerm);
+    }
+  }, []);
+
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (statusFilter) {
+      params.set("status", statusFilter);
+    }
+
+    if (searchTerm) {
+      params.set("searchType", searchType);
+      params.set("searchTerm", searchTerm);
+    }
+
+    setSearchParams(params, { replace: true });
+  }, [statusFilter, searchTerm, searchType, setSearchParams]);
 
   const filteredOrders = useMemo(() => {
     let filtered = orders;
@@ -52,6 +107,7 @@ export const AdminOrders = () => {
     setStatusFilter("");
     setSearchTerm("");
     setSearchType("customer");
+    setSearchParams({});
   };
 
   const hasActiveFilters = statusFilter !== "" || searchTerm !== "";

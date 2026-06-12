@@ -8,11 +8,13 @@ import {
   Clock,
   BookOpen,
   Package,
+  ArrowRight,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { dashboardAPI, orderAPI } from "@/lib/api";
 import { Modal } from "@/components/common/Modal";
+import { Button } from "@/components/common/Button";
 
 export const AdminDashboard = () => {
   const { stats, loading } = useDashboard();
@@ -76,7 +78,7 @@ export const AdminDashboard = () => {
         navigate("/admin/orders");
         break;
       case "pendingOrders":
-        navigate("/admin/orders?status=pending");
+        navigate("/admin/orders?status=pending"); // This will now work
         break;
       case "catalogueSize":
         navigate("/admin/articles");
@@ -364,7 +366,7 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Order Details Modal - Same as Orders.tsx */}
+      {/* Order Details Modal*/}
       <Modal
         isOpen={!!selectedOrder}
         onClose={() => {
@@ -449,6 +451,27 @@ export const AdminDashboard = () => {
                   <p className="text-sm text-gray-600">{displayOrder.notes}</p>
                 </div>
               )}
+
+              {/* View Order Button */}
+              <div className="pt-4 border-t border-gray-200 text-end">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="!bg-black gap-2 inline-flex duration-200 group"
+                  onClick={() => {
+                    setSelectedOrder(null);
+                    setSelectedOrderDetails(null);
+                    navigate(
+                      `/admin/orders?searchType=id&searchTerm=${displayOrder.id}`,
+                    );
+                  }}
+                >
+                  <p className="flex gap-2 items-center">
+                    View Full Order Details
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </p>
+                </Button>
+              </div>
             </div>
           )
         )}

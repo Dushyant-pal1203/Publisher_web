@@ -249,6 +249,13 @@ export const CustomerOrderDetails = () => {
           <ArrowLeft className="h-4 w-4" />
           Back to Orders
         </button>
+        <button
+          onClick={() => navigate("/customer/orders")}
+          className="inline-flex items-center gap-2  text-gray-500 hover:text-gray-700 transition-colors duration-200 group mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+          Back to Orders
+        </button>
         <div className="flex justify-between items-start flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -504,7 +511,12 @@ export const CustomerOrderDetails = () => {
       {/* Action Buttons */}
       <div className="flex justify-between gap-4 mt-8">
         <Link to="/catalogue">
-          <Button variant="secondary">Continue Shopping</Button>
+          <Button
+            variant="secondary"
+            className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            Continue Shopping
+          </Button>
         </Link>
         {order.status !== "delivered" && order.status !== "cancelled" && (
           <button className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition">

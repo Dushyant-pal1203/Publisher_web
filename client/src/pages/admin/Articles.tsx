@@ -530,7 +530,7 @@ export const AdminArticles = () => {
                           reset();
                           setIsModalOpen(true);
                         }}
-                        className="mt-2"
+                        className="mt-2 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Add your first article
@@ -1086,7 +1086,7 @@ export const AdminArticles = () => {
               type="button"
               variant="secondary"
               onClick={handleCloseModal}
-              className="px-6"
+              className="px-6 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               Cancel
             </Button>
@@ -1131,6 +1131,7 @@ export const AdminArticles = () => {
               type="button"
               variant="secondary"
               onClick={() => setIsDeleteModalOpen(false)}
+              className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               Cancel
             </Button>

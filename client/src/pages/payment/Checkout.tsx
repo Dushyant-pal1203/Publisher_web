@@ -712,10 +712,7 @@ export const Checkout = () => {
             <p className="text-gray-500 mb-6">
               Add some items to your cart before checking out
             </p>
-            <Button
-              onClick={() => navigate("/")}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
+            <Button onClick={() => navigate("/")} size="md" className="mx-auto">
               Continue Shopping
             </Button>
           </div>
@@ -732,9 +729,9 @@ export const Checkout = () => {
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          className="inline-flex items-center gap-2  text-gray-500 hover:text-gray-700 transition-colors duration-200 group mb-6"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
           Back
         </button>
 
@@ -1110,7 +1107,7 @@ export const Checkout = () => {
                   <Button
                     onClick={() => navigate("/")}
                     variant="secondary"
-                    className="transition-colors"
+                    className=" transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
                     Continue Shopping
                   </Button>

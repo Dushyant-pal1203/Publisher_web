@@ -1,4 +1,3 @@
-// client/src/pages/customer/CustomerOrderTracking.tsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -21,6 +20,7 @@ import {
   MessageCircle,
   CreditCard,
   PackagePlus,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useToast } from "@/context/ToastContext";
@@ -778,6 +778,12 @@ export const CustomerOrderTracking = () => {
             <Button variant="secondary" className="gap-2">
               <Home className="h-4 w-4" />
               All Orders
+            </Button>
+          </Link>
+          <Link to={`/customer/orders/bill/${getOrderId()}`}>
+            <Button variant="secondary" className="gap-2">
+              <FileText className="h-4 w-4" />
+              View Bill
             </Button>
           </Link>
           <Button

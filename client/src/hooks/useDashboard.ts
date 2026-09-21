@@ -6,10 +6,11 @@ interface DashboardStats {
   totalRevenue: number;
   totalOrders: number;
   pendingOrders: number;
+  shippedOrders: number;
   catalogueSize: number;
   recentOrders: any[];
   catalogueBreakdown: any[];
-  monthlyRevenue: any[]; // Add this
+  monthlyRevenue: any[];
 }
 
 export const useDashboard = () => {

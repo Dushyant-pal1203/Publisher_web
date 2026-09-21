@@ -704,7 +704,10 @@ router.get("/orders/:id", async (req, res) => {
           ELSE NULL
         END as estimated_delivery
        FROM orders o
-       WHERE o.id = $1 AND (o.customer_email = $2 OR o.customer_phone = $3)`,
+       WHERE (o.id = $1 OR o.order_group_id = (
+         SELECT order_group_id FROM orders WHERE id = $1
+       )) AND (o.customer_email = $2 OR o.customer_phone = $3)
+       ORDER BY o.id`,
       [id, customer.email, customer.phone_number],
     );
 
@@ -712,7 +715,31 @@ router.get("/orders/:id", async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    res.json({ success: true, order: orderResult.rows[0] });
+    const firstOrder = orderResult.rows[0];
+    res.json({
+      success: true,
+      order: {
+        ...firstOrder,
+        total_amount: orderResult.rows.reduce(
+          (total, row) => total + Number(row.total_amount),
+          0,
+        ),
+        quantity: orderResult.rows.reduce(
+          (total, row) => total + Number(row.quantity),
+          0,
+        ),
+        items: orderResult.rows.map((row) => ({
+          article_id: row.article_id,
+          article_title: row.article_title,
+          article_author: row.article_author,
+          quantity: Number(row.quantity),
+          total_amount: Number(row.total_amount),
+          title: row.article_title,
+          author: row.article_author,
+          price: Number(row.total_amount) / Number(row.quantity),
+        })),
+      },
+    });
   } catch (error) {
     console.error("Get order details error:", error);
     res

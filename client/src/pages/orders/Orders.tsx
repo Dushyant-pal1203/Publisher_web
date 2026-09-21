@@ -24,6 +24,7 @@ import {
   LogIn,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { groupOrders } from "@/lib/orderGrouping";
 
 type OrderItem = {
   id: number;
@@ -54,7 +55,7 @@ type LocalOrder = {
     address: string;
   };
   notes: string;
-  paymentMethod: "whatsapp" | "bank_transfer";
+  paymentMethod: "whatsapp" | "bank_transfer" | "cod";
   orderDate: string;
   status: OrderStatus;
   trackingNumber?: string;
@@ -64,6 +65,8 @@ type LocalOrder = {
 
 type DatabaseOrder = {
   id: number;
+  order_group_id?: string;
+  article_id: number;
   article_title: string;
   article_author: string;
   quantity: number;
@@ -76,6 +79,14 @@ type DatabaseOrder = {
   customer_address: string;
   notes: string;
   created_at: string;
+  items?: Array<{
+    article_id: number;
+    article_title: string;
+    article_author?: string;
+    quantity: number;
+    total_amount: number;
+  }>;
+  item_count?: number;
 };
 
 type CombinedOrder = LocalOrder | DatabaseOrder;
@@ -125,7 +136,9 @@ export const Orders = () => {
       try {
         const response = await orderAPI.getAll();
 
-        const orders: DatabaseOrder[] = response.data.orders || [];
+        const orders: DatabaseOrder[] = groupOrders<DatabaseOrder>(
+          response.data.orders || [],
+        );
 
         const customerOrders = orders.filter(
           (order) =>
@@ -147,7 +160,15 @@ export const Orders = () => {
   const allOrders = (): LocalOrder[] => {
     const dbOrdersAsLocal: LocalOrder[] = databaseOrders.map((order) => ({
       orderId: `DB-${order.id}`,
-      items: [
+      items: order.items?.map((item) => ({
+        id: item.article_id,
+        title: item.article_title,
+        author: item.article_author || "",
+        price: item.total_amount / item.quantity,
+        currency: "INR",
+        quantity: item.quantity,
+        cover_image_url: null,
+      })) || [
         {
           id: order.id,
           title: order.article_title,

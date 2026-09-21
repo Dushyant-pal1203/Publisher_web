@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS articles (
 -- Create orders table
 CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY NOT NULL,
+  order_group_id TEXT,
   article_id INTEGER NOT NULL,
   article_title TEXT NOT NULL,
   article_author TEXT,
@@ -58,6 +59,9 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMP DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
+
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_group_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_orders_order_group_id ON orders(order_group_id);
 
 -- Create settings table
 CREATE TABLE IF NOT EXISTS settings (

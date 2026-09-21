@@ -1,5 +1,6 @@
 export interface Order {
   id: number;
+  order_group_id?: string;
   article_id: number;
   article_title: string;
   article_author?: string;
@@ -20,4 +21,11 @@ export interface Order {
   currency: string;
   notes?: string;
   created_at: string;
+  items?: Array<{
+    article_id: number;
+    article_title: string;
+    article_author?: string;
+    quantity: number;
+    total_amount: number;
+  }>;
 }

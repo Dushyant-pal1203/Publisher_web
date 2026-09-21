@@ -299,6 +299,8 @@ export const OrderBillPDF = ({
     const method = order?.payment_method || order?.paymentMethod;
     const methodMap: Record<string, string> = {
       bank_transfer: "Bank Transfer / UPI",
+      whatsapp: "WhatsApp Order",
+      cod: "Cash on Delivery",
       credit_card: "Credit Card",
       debit_card: "Debit Card",
       cash: "Cash on Delivery",

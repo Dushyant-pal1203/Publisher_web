@@ -27,6 +27,7 @@ import {
   X,
   Smartphone,
   Building2,
+  Banknote,
 } from "lucide-react";
 
 type OrderFormData = {
@@ -35,7 +36,7 @@ type OrderFormData = {
   email: string;
   deliveryAddress: string;
   orderNotes: string;
-  paymentMethod: "whatsapp" | "bank_transfer";
+  paymentMethod: "whatsapp" | "bank_transfer" | "cod";
 };
 
 export const Checkout = () => {
@@ -118,7 +119,9 @@ export const Checkout = () => {
     }
   };
 
-  const handlePaymentMethodChange = (method: "whatsapp" | "bank_transfer") => {
+  const handlePaymentMethodChange = (
+    method: "whatsapp" | "bank_transfer" | "cod",
+  ) => {
     setFormData((prev) => ({ ...prev, paymentMethod: method }));
   };
 
@@ -137,7 +140,13 @@ export const Checkout = () => {
     if (order.notes) {
       message += `\n*Notes:* ${order.notes}\n`;
     }
-    message += `\n*Payment Method:* ${order.paymentMethod === "whatsapp" ? "WhatsApp Order" : "Bank Transfer/UPI"}\n`;
+    const paymentMethod =
+      order.paymentMethod === "whatsapp"
+        ? "WhatsApp Order"
+        : order.paymentMethod === "cod"
+          ? "Cash on Delivery"
+          : "Bank Transfer/UPI";
+    message += `\n*Payment Method:* ${paymentMethod}\n`;
     return message;
   };
 
@@ -226,6 +235,7 @@ export const Checkout = () => {
         const orderPromises = cartItems.map(async (item) => {
           const orderPayload = {
             article_id: item.id,
+            order_group_id: orderId,
             article_title: item.title,
             article_author: item.author,
             quantity: item.quantity,
@@ -271,7 +281,7 @@ export const Checkout = () => {
             replace: true,
           });
         }, 1500);
-      } else {
+      } else if (formData.paymentMethod === "bank_transfer") {
         setCompletedOrderData({
           orderData,
           savedOrders,
@@ -280,6 +290,15 @@ export const Checkout = () => {
         setShowPaymentDetails(true);
         setLoading(false);
         showSuccess("Order created! Please complete the payment.");
+      } else {
+        navigate("/order-confirmation", {
+          state: {
+            orderData,
+            savedOrders,
+            orderId: savedOrders?.[0]?.id || orderId,
+          },
+          replace: true,
+        });
       }
     } catch (error) {
       console.error("Order submission failed:", error);
@@ -938,6 +957,28 @@ export const Checkout = () => {
                         <p className="text-sm text-gray-500 mt-1">
                           Confirm order details and arrange payment via
                           WhatsApp.
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-3 p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={formData.paymentMethod === "cod"}
+                        onChange={() => handlePaymentMethodChange("cod")}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Banknote className="h-5 w-5 text-emerald-600" />
+                          <span className="font-medium text-gray-900">
+                            Cash on Delivery
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Pay in cash when your order is delivered.
                         </p>
                       </div>
                     </label>

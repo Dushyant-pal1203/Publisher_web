@@ -14,6 +14,7 @@ router.post("/", async (req, res) => {
   try {
     const {
       article_id,
+      order_group_id,
       article_title,
       article_author,
       quantity = 1,
@@ -65,13 +66,14 @@ router.post("/", async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO orders 
-       (article_id, article_title, article_author, quantity, customer_name, 
+       (article_id, order_group_id, article_title, article_author, quantity, customer_name, 
         customer_email, customer_phone, customer_address, payment_method, 
         status, total_amount, currency, notes) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
        RETURNING *`,
       [
         article_id,
+        order_group_id || null,
         article_title,
         article_author,
         quantity,
@@ -174,7 +176,12 @@ router.patch("/:id/status", requireAuth, async (req, res) => {
     }
 
     const result = await pool.query(
-      "UPDATE orders SET status = $1 WHERE id = $2 RETURNING *",
+      `UPDATE orders
+       SET status = $1
+       WHERE id = $2 OR order_group_id = (
+         SELECT order_group_id FROM orders WHERE id = $2
+       )
+       RETURNING *`,
       [status, req.params.id],
     );
 
@@ -192,7 +199,11 @@ router.patch("/:id/status", requireAuth, async (req, res) => {
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
-      "DELETE FROM orders WHERE id = $1 RETURNING id",
+      `DELETE FROM orders
+       WHERE id = $1 OR order_group_id = (
+         SELECT order_group_id FROM orders WHERE id = $1
+       )
+       RETURNING id`,
       [req.params.id],
     );
 
@@ -212,13 +223,13 @@ router.get("/stats/summary", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        COUNT(*) as total_orders,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders,
-        COUNT(CASE WHEN status = 'confirmed' THEN 1 END) as confirmed_orders,
-        COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_orders,
-        COUNT(CASE WHEN status = 'shipped' THEN 1 END) as shipped_orders,
-        COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_orders,
-        COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_orders,
+        COUNT(DISTINCT COALESCE(order_group_id, id::text)) as total_orders,
+        COUNT(DISTINCT CASE WHEN status = 'pending' THEN COALESCE(order_group_id, id::text) END) as pending_orders,
+        COUNT(DISTINCT CASE WHEN status = 'confirmed' THEN COALESCE(order_group_id, id::text) END) as confirmed_orders,
+        COUNT(DISTINCT CASE WHEN status = 'processing' THEN COALESCE(order_group_id, id::text) END) as processing_orders,
+        COUNT(DISTINCT CASE WHEN status = 'shipped' THEN COALESCE(order_group_id, id::text) END) as shipped_orders,
+        COUNT(DISTINCT CASE WHEN status = 'delivered' THEN COALESCE(order_group_id, id::text) END) as delivered_orders,
+        COUNT(DISTINCT CASE WHEN status = 'cancelled' THEN COALESCE(order_group_id, id::text) END) as cancelled_orders,
         COALESCE(SUM(CASE WHEN status = 'delivered' THEN total_amount ELSE 0 END), 0) as total_revenue
       FROM orders
     `);

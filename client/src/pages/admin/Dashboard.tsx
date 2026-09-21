@@ -9,6 +9,7 @@ import {
   BookOpen,
   Package,
   ArrowRight,
+  Truck,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -78,7 +79,10 @@ export const AdminDashboard = () => {
         navigate("/admin/orders");
         break;
       case "pendingOrders":
-        navigate("/admin/orders?status=pending"); // This will now work
+        navigate("/admin/orders?status=pending");
+        break;
+      case "shippedOrders":
+        navigate("/admin/orders?status=shipped");
         break;
       case "catalogueSize":
         navigate("/admin/articles");
@@ -93,12 +97,31 @@ export const AdminDashboard = () => {
 
   const statsData = [
     {
+      title: "Inventory Value",
+      value: inventoryLoading
+        ? "Loading..."
+        : `₹${totalInventoryValue.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+      icon: <Package className="h-6 w-6" />,
+      onClick: () => handleCardClick("inventoryValue"),
+      description: "Stock value (Price × Quantity)",
+    },
+    {
       title: "Total Revenue",
       value: `₹${stats?.totalRevenue?.toLocaleString("en-IN") || 0}`,
       icon: <IndianRupee className="h-6 w-6" />,
       trend: { value: 15, isPositive: true },
       onClick: () => handleCardClick("revenue"),
       description: "From delivered orders",
+    },
+    {
+      title: "Catalogue Size",
+      value: stats?.catalogueSize || 0,
+      icon: <BookOpen className="h-6 w-6" />,
+      onClick: () => handleCardClick("catalogueSize"),
+      description: "Total articles",
     },
     {
       title: "Total Orders",
@@ -111,31 +134,14 @@ export const AdminDashboard = () => {
       title: "Pending Orders",
       value: stats?.pendingOrders || 0,
       icon: <Clock className="h-6 w-6" />,
-      trend: {
-        value: stats?.pendingOrders ?? 0,
-        isPositive: false,
-      },
-      onClick: () => handleCardClick("pendingOrders"),
+      // FIX: Remove trend property or ensure it has correct structure
       description: "Awaiting processing",
     },
     {
-      title: "Catalogue Size",
-      value: stats?.catalogueSize || 0,
-      icon: <BookOpen className="h-6 w-6" />,
-      onClick: () => handleCardClick("catalogueSize"),
-      description: "Total articles",
-    },
-    {
-      title: "Inventory Value",
-      value: inventoryLoading
-        ? "Loading..."
-        : `₹${totalInventoryValue.toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`,
-      icon: <Package className="h-6 w-6" />,
-      onClick: () => handleCardClick("inventoryValue"),
-      description: "Stock value (Price × Quantity)",
+      title: "Shipped Orders",
+      value: stats?.shippedOrders || 0, // Make sure this is coming from your API
+      icon: <Truck className="h-6 w-6" />,
+      description: "Orders in transit",
     },
   ];
 
@@ -147,13 +153,21 @@ export const AdminDashboard = () => {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {statsData.map((stat, index) => (
           <div
             key={index}
             className="cursor-pointer transition-transform hover:scale-105"
+            onClick={stat.onClick}
           >
-            <StatsCard {...stat} />
+            <StatsCard
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              description={stat.description}
+              // Only pass trend if it exists and has correct structure
+              {...(stat.trend && { trend: stat.trend })}
+            />
           </div>
         ))}
       </div>

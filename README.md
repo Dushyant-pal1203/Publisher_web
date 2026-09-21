@@ -47,6 +47,11 @@ A complete publishing house management system with public website and admin dash
 - pnpm (v8 or higher)
 - PostgreSQL (v14 or higher)
 
+### Start project
+- pnpm run start
+- pnpm run dev
+
+
 ### Setup Steps
 
 1. **Clone the repository**

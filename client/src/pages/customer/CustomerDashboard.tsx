@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { customerOrderAPI } from "@/lib/customerApi";
+import { groupOrders } from "@/lib/orderGrouping";
 import {
   Package,
   ShoppingBag,
@@ -101,7 +102,7 @@ export const CustomerDashboard = () => {
     try {
       setLoading(true);
       const response = await customerOrderAPI.getMyOrders();
-      const orders = response.data.orders || [];
+      const orders = groupOrders(response.data.orders || []);
 
       // Convert orders to consistent format
       const formattedOrders: CustomerOrder[] = orders.map((order: any) => ({

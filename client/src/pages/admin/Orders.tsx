@@ -112,6 +112,15 @@ export const AdminOrders = () => {
 
   const hasActiveFilters = statusFilter !== "" || searchTerm !== "";
 
+  const getPaymentMethodText = (method: string) => {
+    const labels: Record<string, string> = {
+      whatsapp: "WhatsApp Order",
+      bank_transfer: "Bank Transfer / UPI",
+      cod: "Cash on Delivery",
+    };
+    return labels[method] || method;
+  };
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Orders</h1>
@@ -289,7 +298,16 @@ export const AdminOrders = () => {
                       #{order.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.article_title}
+                      <div className="space-y-1">
+                        {order.items?.map((item) => (
+                          <div key={item.article_id}>
+                            {item.article_title}{" "}
+                            <span className="text-xs text-gray-500">
+                              x{item.quantity}
+                            </span>
+                          </div>
+                        )) || order.article_title}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {order.customer_name}
@@ -302,7 +320,7 @@ export const AdminOrders = () => {
                       ₹{order.total_amount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className="capitalize">{order.payment_method}</span>
+                      <span>{getPaymentMethodText(order.payment_method)}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
@@ -354,19 +372,35 @@ export const AdminOrders = () => {
 
             <div>
               <h3 className="font-semibold text-gray-900">Article Details</h3>
-              <p className="text-sm text-gray-600">
-                Title: {selectedOrder.article_title}
-              </p>
-              {selectedOrder.article_author && (
-                <p className="text-sm text-gray-600">
-                  Author: {selectedOrder.article_author}
-                </p>
+              {selectedOrder.items?.map((item: any) => (
+                <div key={item.article_id} className="mb-2">
+                  <p className="text-sm text-gray-600">
+                    Title: {item.article_title}
+                  </p>
+                  {item.article_author && (
+                    <p className="text-sm text-gray-600">
+                      Author: {item.article_author}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    Quantity: {item.quantity}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Total: ₹{item.total_amount}
+                  </p>
+                </div>
+              )) || (
+                <>
+                  <p className="text-sm text-gray-600">
+                    Title: {selectedOrder.article_title}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Quantity: {selectedOrder.quantity}
+                  </p>
+                </>
               )}
-              <p className="text-sm text-gray-600">
-                Quantity: {selectedOrder.quantity}
-              </p>
-              <p className="text-sm text-gray-600">
-                Total: ₹{selectedOrder.total_amount}
+              <p className="text-sm font-semibold text-gray-900">
+                Order Total: ₹{selectedOrder.total_amount}
               </p>
             </div>
 
@@ -391,7 +425,7 @@ export const AdminOrders = () => {
             <div>
               <h3 className="font-semibold text-gray-900">Payment</h3>
               <p className="text-sm text-gray-600">
-                Method: {selectedOrder.payment_method}
+                Method: {getPaymentMethodText(selectedOrder.payment_method)}
               </p>
               <p className="text-sm text-gray-600">
                 Status: <StatusBadge status={selectedOrder.status} />

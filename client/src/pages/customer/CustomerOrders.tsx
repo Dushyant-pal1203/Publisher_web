@@ -19,6 +19,7 @@ import {
   PackagePlus,
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
+import { groupOrders } from "@/lib/orderGrouping";
 
 interface CustomerOrder {
   id: number;
@@ -40,6 +41,15 @@ interface CustomerOrder {
   tracking_number?: string;
   estimated_delivery?: string;
   notes?: string;
+  order_group_id?: string;
+  items?: Array<{
+    article_id: number;
+    article_title: string;
+    article_author?: string;
+    quantity: number;
+    total_amount: number;
+  }>;
+  item_count?: number;
 }
 
 export const CustomerOrders = () => {
@@ -85,7 +95,7 @@ export const CustomerOrders = () => {
     try {
       setLoading(true);
       const response = await customerOrderAPI.getMyOrders();
-      const ordersData = response.data.orders || [];
+      const ordersData = groupOrders<CustomerOrder>(response.data.orders || []);
       setOrders(ordersData);
       setFilteredOrders(ordersData);
     } catch (error) {
@@ -110,6 +120,11 @@ export const CustomerOrders = () => {
         (order) =>
           order.article_title.toLowerCase().includes(term) ||
           order.article_author.toLowerCase().includes(term) ||
+          order.items?.some(
+            (item) =>
+              item.article_title.toLowerCase().includes(term) ||
+              item.article_author?.toLowerCase().includes(term),
+          ) ||
           order.id.toString().includes(term),
       );
     }
@@ -343,7 +358,8 @@ export const CustomerOrders = () => {
                         ₹{order.total_amount.toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {order.quantity} item{order.quantity !== 1 ? "s" : ""}
+                        {order.item_count || 1} article
+                        {(order.item_count || 1) !== 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
@@ -352,10 +368,16 @@ export const CustomerOrders = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-medium text-gray-900">
-                          {order.article_title}
+                          {order.items?.map((item) => (
+                            <span key={item.article_id} className="block">
+                              {item.article_title}
+                            </span>
+                          )) || order.article_title}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
-                          by {order.article_author}
+                          {order.items && order.items.length > 1
+                            ? `${order.items.length} articles in this order`
+                            : `by ${order.article_author}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-blue-600">

@@ -100,14 +100,16 @@ export const BillDetail = () => {
         if (response.data?.order) {
           const dbOrder = response.data.order;
           setOrder(dbOrder);
-          setOrderItems([
-            {
-              title: dbOrder.article_title,
-              author: dbOrder.article_author,
-              quantity: dbOrder.quantity,
-              price: dbOrder.total_amount / dbOrder.quantity,
-            },
-          ]);
+          setOrderItems(
+            dbOrder.items || [
+              {
+                title: dbOrder.article_title,
+                author: dbOrder.article_author,
+                quantity: dbOrder.quantity,
+                price: dbOrder.total_amount / dbOrder.quantity,
+              },
+            ],
+          );
         }
       }
     } catch (error) {

@@ -123,6 +123,15 @@ export const CustomerOrderDetails = () => {
     }
   };
 
+  const getPaymentMethodText = (method: string) => {
+    const labels: Record<string, string> = {
+      whatsapp: "WhatsApp Order",
+      bank_transfer: "Bank Transfer / UPI",
+      cod: "Cash on Delivery",
+    };
+    return labels[method] || method;
+  };
+
   const getStatusStep = (status: string) => {
     const steps = [
       "pending",
@@ -174,7 +183,7 @@ export const CustomerOrderDetails = () => {
         <div class="order-info">
           <h3>Order Information</h3>
           <p><strong>Status:</strong> ${getStatusText(order.status)}</p>
-          <p><strong>Payment Method:</strong> ${order.payment_method}</p>
+          <p><strong>Payment Method:</strong> ${getPaymentMethodText(order.payment_method)}</p>
         </div>
         <div>
           <h3>Customer Information</h3>
@@ -393,7 +402,7 @@ export const CustomerOrderDetails = () => {
           <div className="space-y-3">
             <p className="text-gray-700">
               <span className="font-medium">Method:</span>{" "}
-              {order.payment_method}
+              {getPaymentMethodText(order.payment_method)}
             </p>
             <p className="text-gray-700">
               <span className="font-medium">Status:</span>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { orderAPI } from "@/lib/api";
 import { Order } from "@/types/order";
+import { groupOrders } from "@/lib/orderGrouping";
 
 export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -11,7 +12,7 @@ export const useOrders = () => {
     setLoading(true);
     try {
       const response = await orderAPI.getAll();
-      setOrders(response.data.orders);
+      setOrders(groupOrders<Order>(response.data.orders || []));
     } catch (error) {
       toast.error("Failed to fetch orders");
     } finally {

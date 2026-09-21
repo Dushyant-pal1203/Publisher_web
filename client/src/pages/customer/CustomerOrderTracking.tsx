@@ -49,6 +49,16 @@ interface OrderDetails {
   tracking_number?: string;
   estimated_delivery?: string;
   notes?: string;
+  items?: Array<{
+    article_id: number;
+    article_title: string;
+    article_author?: string;
+    quantity: number;
+    total_amount: number;
+    title?: string;
+    author?: string;
+    price?: number;
+  }>;
 }
 
 interface LocalOrderDetails {
@@ -412,6 +422,13 @@ export const CustomerOrderTracking = () => {
     if (!order) return [];
     if (isLocalOrderDetails(order)) {
       return order.items;
+    } else if (order.items?.length) {
+      return order.items.map((item) => ({
+        title: item.article_title,
+        author: item.article_author,
+        quantity: item.quantity,
+        price: item.total_amount / item.quantity,
+      }));
     } else {
       return [
         {
